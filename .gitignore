@@ -1,6 +1,10 @@
-# Arquivos de ambiente
+# Arquivo real de ambiente (segredo)
 .env
-.env.*
+
+# Variações locais
+.env.local
+.env.dev
+.env.prod
 
 # Dependências (PHP / Composer)
 vendor/

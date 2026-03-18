@@ -1,9 +1,10 @@
     <?php
 
-    $host = 'localhost';
-    $db = 'agendamento_bd';
-    $user = 'root';
-    $pass = '';
+    $host    = $_ENV['DB_HOST'];
+    $port    = $_ENV['DB_PORT'];
+    $db      = $_ENV['DB_NAME'];
+    $user    = $_ENV['DB_USER'];
+    $pass    = $_ENV['DB_PASS'];
     $charset = 'utf8mb4';
 
     $dsn = "mysql:host=$host;dbname=$db;charset=$charset";
@@ -15,7 +16,8 @@
     ];
 
     try {
-        $pdo = new PDO("mysql:host=$host;charset=$charset", $user, $pass, $options);
+            $pdo = new PDO(
+        "mysql:host=$host;port=$port;charset=$charset",$user,$pass,$options);
 
         // aqui e pa criar o banco acaso ele não exista
         $pdo->exec("CREATE DATABASE IF NOT EXISTS `$db` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
