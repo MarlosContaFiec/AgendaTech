@@ -3,13 +3,12 @@
     "description": "API/backend de agendamentos",
     "type": "project",
     "require": {
-        "php": "8.2.12",
-        "tesseract_ocr": "^2.13"
+        "php": "^8.2",
+        "thiagoalessio/tesseract_ocr": "^2.13"
     },
     "autoload": {
         "psr-4": {
-            "back\\": "src/",
-            "back\\Config\\": "src/Config/"
+            "back\\": "src/"
         }
     }
 }
