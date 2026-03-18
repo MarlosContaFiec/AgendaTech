@@ -1,0 +1,45 @@
+C:.
+├───include
+├───public
+│   ├───api
+│   ├───assets
+│   │   ├───css
+│   │   ├───img
+│   │   └───js
+│   └───pages
+├───src
+│   └───calendario
+│       ├───Api
+│       ├───Models
+│       └───Services
+└───vendor
+    ├───composer
+    ├───graham-campbell
+    │   └───result-type
+    │       └───src
+    ├───phpoption
+    │   └───phpoption
+    │       └───src
+    │           └───PhpOption
+    ├───symfony
+    │   ├───polyfill-ctype
+    │   ├───polyfill-mbstring
+    │   │   └───Resources
+    │   │       └───unidata
+    │   └───polyfill-php80
+    │       └───Resources
+    │           └───stubs
+    ├───thiagoalessio
+    │   └───tesseract_ocr
+    │       └───src
+    └───vlucas
+        └───phpdotenv
+            └───src
+                ├───Exception
+                ├───Loader
+                ├───Parser
+                ├───Repository
+                │   └───Adapter
+                ├───Store
+                │   └───File
+                └───Util

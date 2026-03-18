@@ -1,6 +1,5 @@
 <?php
-require_once __DIR__ . '/../bootstrap.php';
-require_once('../include/conexao.php');
+
 ?>
     
     <!DOCTYPE html>
@@ -15,13 +14,13 @@ require_once('../include/conexao.php');
         <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
 
     
-        <link rel="stylesheet" href="../assets/css/style.css">
+        <link rel="stylesheet" href="/assets/css/style.css">
     </head>
     <body>
     <header>
    <div class="logo">
     <div class="logo-circle">
-        <img src="../assets/img/logo.png" alt="Logo AgendaTech" class="logo-img">
+        <img src="assets/img/logo.png" alt="Logo AgendaTech" class="logo-img">
     </div> 
     <h2>AgendaTech</h2>
 </div>
@@ -30,7 +29,7 @@ require_once('../include/conexao.php');
             <a href="#sobre">Sobre</a>
             <a href="#recursos">Recursos</a>
             <a href="#contato">Contato</a>
-            <a href="../pages/identificador.php" class="btn-login">Cadastre-se</a>
+            <a href="/pages/identificador.php" class="btn-login">Cadastre-se</a>
         </nav>
 
         <!-- Botão Hamburguer -->
@@ -55,7 +54,7 @@ require_once('../include/conexao.php');
 
         <div class="hero-image">
             <div class="image-placeholder">
-               <img src="../assets/img/folha-rosto.webp" alt="">
+               <img src="/assets/img/folha-rosto.webp" alt="">
             </div>
         </div>
     </section>
@@ -108,7 +107,7 @@ require_once('../include/conexao.php');
     </footer>
 
     <!-- SCRIPT MENU -->
-    <script src="../assets/js/page.js"></script>
+    <script src="assets/js/page.js"></script>
 
     </body>
     </html>
