@@ -1,6 +1,7 @@
 <?php
 session_start();
-include("../include/conexao.php");
+
+require __DIR__ . '/../../include/conexao.php';
 
 $erro = null;
 $sucesso = false;
@@ -29,6 +30,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     $dados['email'],
                     $dados['senha'],
                     'cliente',
+                    $data
                 ]);
 
                 $id_usuario = $pdo->lastInsertId();

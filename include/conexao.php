@@ -1,5 +1,14 @@
     <?php
 
+    require_once __DIR__ . '/../vendor/autoload.php';
+
+    use Dotenv\Dotenv;
+
+    // Carrega as variáveis
+    $dotenv = Dotenv::createImmutable(__DIR__ . '/../');
+    $dotenv->load();
+
+    try {
     $host    = $_ENV['DB_HOST'];
     $port    = $_ENV['DB_PORT'];
     $db      = $_ENV['DB_NAME'];
@@ -14,7 +23,9 @@
         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
         PDO::ATTR_EMULATE_PREPARES => false,
     ];
-
+    } catch (PDOException $e) {
+        die("Erro na conexão: " . $e->getMessage());
+    }
     try {
             $pdo = new PDO(
         "mysql:host=$host;port=$port;charset=$charset",$user,$pass,$options);

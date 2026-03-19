@@ -47,7 +47,7 @@ CREATE TABLE IF NOT EXISTS regras (
 
     --=== === === condição para padrão / exceção === === ===
     dia_semana          TINYINT UNSIGNED NULL,   -- 0=dom … 6=sáb  (NULL = qualquer)
-    nth_do_mes          TINYINT UNSIGNED NULL,   -- 1ª, 2ª… ocorrência; 0 = toda semana
+    ocorrencia          TINYINT UNSIGNED NULL,   -- 1ª, 2ª… ocorrência; 0 = toda semana
     mes                 TINYINT UNSIGNED NULL,   -- 0=jan … 11=dez (NULL = qualquer)
 
     --=== === === condição para único === === ===
