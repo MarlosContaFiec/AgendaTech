@@ -1,5 +1,6 @@
 # Arquivo real de ambiente (segredo)
 .env
+BancoDeDadosBase.json
 
 # Variações locais
 .env.local
