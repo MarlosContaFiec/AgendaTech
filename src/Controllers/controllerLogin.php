@@ -1,8 +1,10 @@
 <?php
 
-session_start();
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 
-require __DIR__ . '/../../include/conexao.php';
+require_once __DIR__ . '/../../include/conexao.php';
 
 $erro = "";
 
@@ -21,7 +23,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         WHERE c.cpf = ?
         ");
 
+        try {
         $stmt->execute([$usuario]);
+    } catch (PDOException $e) {
+        die("ERRO SQL: " . $e->getMessage());
+    }
 
     } elseif (strlen($usuario) == 14) {
 
@@ -33,7 +39,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         WHERE e.cnpj = ?
         ");
 
-        $stmt->execute([$usuario]);
+        try {
+            $stmt->execute([$usuario]);
+        } catch (PDOException $e) {
+            die("ERRO SQL: " . $e->getMessage());
+        }
+
     } else {
 
         $erro = "CPF ou CNPJ inválido!";
@@ -42,7 +53,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     if (empty($erro)) {
         
         $user = $stmt->fetch(PDO::FETCH_ASSOC);
-
         if ($user && password_verify($senha, $user['senha_hash'])) {
             echo "<script>alert('teste');</script>";
             $_SESSION['user_id'] = $user['id'];

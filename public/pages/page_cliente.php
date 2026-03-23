@@ -1,21 +1,5 @@
 <?php
-session_start();
-include("../include/conexao.php");
-
-if(!isset($_SESSION['user_id']) || $_SESSION['user_tipo'] != 'cliente'){
-    header('Location: login.php');
-    exit();
-    }
-
-    $userId = $_SESSION['user_id'];
-
-    $stmt = $pdo->prepare('SELECT nome FROM cliente WHERE id = ?');
-    $stmt->execute([$userId]);
-    $usuario = $stmt->fetch(PDO::FETCH_ASSOC);
-
-
-
-
+require_once __DIR__ . '/../../src/Controllers/controllerPageCliente.php';
 ?>
 
 <!DOCTYPE html>

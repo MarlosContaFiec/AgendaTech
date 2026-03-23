@@ -32,19 +32,19 @@ try {
 
     // USUARIO
         $pdo->exec("CREATE TABLE IF NOT EXISTS usuario (
-        id INT PRIMARY KEY AUTO_INCREMENT,
+        id INT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
         tipo VARCHAR(20) NOT NULL,
         email VARCHAR(150) UNIQUE NOT NULL,
         senha_hash VARCHAR(255) NOT NULL,
         ativo BOOLEAN DEFAULT TRUE,
-        data_criacao DATE NOT NULL,
+        data_criacao DATETIME DEFAULT CURRENT_TIMESTAMP,
         foto VARCHAR(100)
     )"
     );
 
     // CLIENTE
         $pdo->exec("CREATE TABLE IF NOT EXISTS cliente (
-        id INT PRIMARY KEY,
+        id INT UNSIGNED PRIMARY KEY,
         nome VARCHAR(150) NOT NULL,
         cpf VARCHAR(20) UNIQUE,
         verificado BOOLEAN NULL,
@@ -75,7 +75,7 @@ try {
         cor_secundaria VARCHAR(18),
         cidade VARCHAR(100),
         ativo BOOLEAN DEFAULT TRUE,
-        empresa_id INT UNSIGNED,
+        empresa_id INT UNSIGNED UNIQUE NOT NULL,
         FOREIGN KEY (empresa_id) REFERENCES empresa(id)
     )"
     );
@@ -96,13 +96,13 @@ try {
         $pdo->exec("CREATE TABLE IF NOT EXISTS agendamento 
         (
             id INT AUTO_INCREMENT PRIMARY KEY,
-            cliente_id INT NOT NULL,
+            cliente_id INT UNSIGNED NOT NULL,
             servico_id INT NOT NULL,
             data_agendamento DATE NOT NULL,
             hora_inicio TIME NOT NULL,
             hora_fim TIME NOT NULL,
             status_agendamento ENUM('confirmado','cancelado','pendente','concluido') DEFAULT 'pendente',
-            FOREIGN KEY (cliente_id) REFERENCES usuario(id),
+            FOREIGN KEY (cliente_id) REFERENCES cliente(id),
             FOREIGN KEY (servico_id) REFERENCES servico(id)
         )"
         );
@@ -112,7 +112,7 @@ try {
         (
         id INT PRIMARY KEY AUTO_INCREMENT,
         agendamento_id INT NOT NULL,
-        cliente_id INT NOT NULL,
+        cliente_id INT UNSIGNED NOT NULL,
         estrelas INT CHECK (estrelas BETWEEN 1 AND 5),
         feedback TEXT,
         resposta_empresa TEXT,
@@ -131,7 +131,7 @@ try {
             aceita_agendamento TINYINT(1) NOT NULL DEFAULT 0,
             info TEXT,
             criado_em DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            UNIQUE KEY uq_tag_empresa (empresa_id, nome),
+            UNIQUE KEY tag_empresa (empresa_id, nome),
             FOREIGN KEY (empresa_id) REFERENCES empresa(id) ON DELETE CASCADE
         )"
         );
@@ -170,11 +170,11 @@ try {
         $pdo->exec("CREATE TABLE IF NOT EXISTS mensagem (
         id INT PRIMARY KEY AUTO_INCREMENT,
         empresa_id INT UNSIGNED NOT NULL,
-        cliente_id INT NOT NULL,
+        cliente_id INT UNSIGNED NOT NULL,
         tipo ENUM('cancelamento','confirmacao','lembrete','outro'),
         mensagem TEXT NOT NULL,
         automatica BOOLEAN DEFAULT FALSE,
-        data_envio DATETIME,
+        data_envio DATETIME DEFAULT CURRENT_TIMESTAMP,
         enviado_por ENUM('cliente','empresa'),
         FOREIGN KEY (empresa_id) REFERENCES empresa(id),
         FOREIGN KEY (cliente_id) REFERENCES usuario(id)
@@ -193,7 +193,53 @@ try {
     )"
     );
 
-
+    //indeces a ideia é o sql use os index automaticamente para acelerar a busca - tará comentado de onde é cada um
+    try{
+    // AGENDAMENTO
+    try { $pdo->exec("CREATE INDEX idx_ag_empresa_data ON agendamento (empresa_id, data_agendamento)");
+        } catch (PDOException $e) {
+            //inginora pois não tem if not exists para index
+        }
+    try { $pdo->exec("CREATE INDEX idx_ag_cliente ON agendamento (cliente_id)");
+        } catch (PDOException $e) {
+            //inginora pois não tem if not exists para index
+        }
+    try { $pdo->exec("CREATE INDEX idx_ag_servico ON agendamento (servico_id)");
+        } catch (PDOException $e) {
+            //inginora pois não tem if not exists para index
+        }
+    // MENSAGEM
+    try { $pdo->exec("CREATE INDEX idx_msg_empresa ON mensagem (empresa_id)");
+        } catch (PDOException $e) {
+            //inginora pois não tem if not exists para index
+        }
+    try { $pdo->exec("CREATE INDEX idx_msg_cliente ON mensagem (cliente_id)");
+        } catch (PDOException $e) {
+            //inginora pois não tem if not exists para index
+        }
+    // AVALIACAO
+    try { $pdo->exec("CREATE INDEX idx_av_agendamento ON avaliacao (agendamento_id)");
+        } catch (PDOException $e) {
+            //inginora pois não tem if not exists para index
+        }
+    // SERVICO
+    try { $pdo->exec("CREATE INDEX idx_servico_empresa ON servico (empresa_id)");
+        } catch (PDOException $e) {
+            //inginora pois não tem if not exists para index
+        }
+    // TAGS / REGRAS
+    try { $pdo->exec("CREATE INDEX idx_tags_empresa   ON tags (empresa_id)");
+        } catch (PDOException $e) {
+            //inginora pois não tem if not exists para index
+        }
+    try { $pdo->exec("CREATE INDEX idx_regras_empresa ON regras (empresa_id)");
+        } catch (PDOException $e) {
+            //inginora pois não tem if not exists para index
+        }
+    } catch(Exception $e) {
+        die("Erro na criação do index: " . $e->getMessage());
+    }
+    
 } catch (PDOException $e) {
     die("Erro na conexão: " . $e->getMessage());
 } catch (\Exception $e) {

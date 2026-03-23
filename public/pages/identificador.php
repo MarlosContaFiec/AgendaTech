@@ -16,4 +16,27 @@
     <p>Já possui Login? <a href="../pages/login.php" class='title-login'>Fazer Login</a></p>
 </div>
 </body>
-</html>
+</html><?php
+
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+require_once __DIR__ . '/../../include/conexao.php';
+
+if (!isset($_SESSION['user_id']) || $_SESSION['user_tipo'] !== 'cliente') {
+    header('Location: login.php');
+    exit();
+}
+
+$userId = $_SESSION['user_id'];
+
+$stmt = $pdo->prepare('SELECT nome FROM cliente WHERE id = ?');
+$stmt->execute([$userId]);
+$usuario = $stmt->fetch(PDO::FETCH_ASSOC);
+
+if (!$usuario) {
+    session_destroy();
+    header('Location: login.php');
+    exit();
+}

@@ -1,10 +1,12 @@
 <?php
-session_start();
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 
-require __DIR__ . '/../../include/conexao.php';
-require __DIR__ . '/../Services/EmpresaService.php';
-require __DIR__ . '/../Services/CNPJService.php';
-require __DIR__ . '/../Services/EmailService.php';
+require_once __DIR__ . '/../../include/conexao.php';
+require_once __DIR__ . '/../Services/EmpresaService.php';
+require_once __DIR__ . '/../Services/CNPJService.php';
+require_once __DIR__ . '/../Services/EmailService.php';
 
 $empresaService = new EmpresaService($pdo);
 $emailService = new EmailService();
@@ -35,5 +37,3 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 }
-
-require '../Views/cadastro_empresa.php';

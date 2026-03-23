@@ -7,31 +7,45 @@ function gerarPerfil($pdo, $user_id)
 {
 
     // ================= OCR COM TESSERACT =================
-    if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_FILES['documento']) && $_FILES['documento']['error'] == 0) {
+    if (
+        $_SERVER['REQUEST_METHOD'] === 'POST' &&
+        isset($_FILES['documento']) &&
+        $_FILES['documento']['error'] === UPLOAD_ERR_OK
+    ) {
 
         $arquivo = $_FILES['documento']['tmp_name'];
+        $mime = mime_content_type($arquivo);
+
+        if (!in_array($mime, ['image/jpeg', 'image/png'])) {
+            return; // ignora arquivos inválidos
+        }
 
         try {
 
-        $texto = (new TesseractOCR($arquivo))
-            ->lang('por')
-            ->executable('C:\\Users\\41963\\AppData\\Local\\Programs\\Tesseract-OCR\\tesseract.exe')
-            ->run();
+            $texto = (new TesseractOCR($arquivo))
+                ->executable('C:\Program Files\Tesseract-OCR\tesseract.exe')
+                ->lang('por')
+                ->run();
 
-            preg_match('/\d{2}\/\d{2}\/\d{4}/', $texto, $data);
+            if (preg_match('/\b\d{2}\/\d{2}\/\d{4}\b/', $texto, $data)) {
 
-            if (isset($data[0])) {
+                $dt = DateTime::createFromFormat('d/m/Y', $data[0]);
 
-                $dataNascimento = date("Y-m-d", strtotime(str_replace("/", "-", $data[0])));
-
-                $stmt = $pdo->prepare("UPDATE cliente SET data_nascimento=?,verificado=True  WHERE id=?");
-                $stmt->execute([$dataNascimento, $user_id]);
+                if ($dt) {
+                    $stmt = $pdo->prepare("
+                        UPDATE cliente 
+                        SET data_nascimento = ?, verificado = 1
+                        WHERE id = ?
+                    ");
+                    $stmt->execute([$dt->format('Y-m-d'), $user_id]);
+                }
             }
 
-        } catch (Exception $e) {
-            echo "Erro no OCR: " . $e->getMessage();
+        } catch (Throwable $e) {
+            error_log($e->getMessage());
         }
     }
+
 
     // ================= PEGAR TIPO =================
     $pegarTipo = $pdo->prepare('SELECT tipo FROM usuario WHERE id = ?');
@@ -52,11 +66,12 @@ function gerarPerfil($pdo, $user_id)
     }
 
     // ================= BUSCAR DADOS =================
+    $tabela = ($tipo === 'cliente') ? 'cliente' : 'empresa';
     $stmt = $pdo->prepare("
         SELECT * 
         FROM usuario 
-        JOIN agendamento_bd.$tipo 
-        ON usuario.id = agendamento_bd.$tipo.id
+        JOIN $tabela 
+        ON usuario.id = $tabela.id
         WHERE usuario.id = ?
     ");
 

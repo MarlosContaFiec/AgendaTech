@@ -1,17 +1,19 @@
 <?php
 
-session_start();
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 
-require __DIR__ . '/../../include/conexao.php';
-require __DIR__ . '/../Services/CPFService.php';
-require __DIR__ . '/../Services/EmailService.php';
+require_once __DIR__ . '/../../include/conexao.php';
+require_once __DIR__ . '/../Services/CPFService.php';
+require_once __DIR__ . '/../Services/EmailService.php';
 
 $erro = null;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $nome  = $_POST['nome'] ?? '';
-    $cpf   = $_POST['cpf'] ?? '';
+    $cpf   = preg_replace('/\D/', '', $_POST['cpf'] ?? '');
     $email = $_POST['email'] ?? '';
     $senha = $_POST['senha'] ?? '';
     $conf  = $_POST['confirmar_senha'] ?? '';

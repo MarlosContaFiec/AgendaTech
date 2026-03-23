@@ -1,5 +1,5 @@
 <?php
-require __DIR__ . '/../../src/Controllers/controllerLogin.php';
+require_once __DIR__ . '/../../src/Controllers/controllerLogin.php';
 ?>
 
 <!DOCTYPE html>
