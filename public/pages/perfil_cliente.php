@@ -15,6 +15,12 @@ require_once __DIR__ . '/../../src/Controllers/controllerPerfilCliente.php';
 <div class="container">
 <h2>Perfil do Cliente</h2>
 
+<label>Foto de Perfil</label>
+<?php if (!empty($dados['foto_perfil'])): ?>
+    <img src="../<?= $dados['foto_perfil'] ?>" alt="Foto de Perfil" style="width:100px; height:100px; border-radius:50%;">
+<?php endif; ?>
+<input type="file" name="foto_perfil" accept="image/*">
+
 <form method="POST" enctype="multipart/form-data">
 
 <label>Nome</label>
@@ -32,10 +38,12 @@ require_once __DIR__ . '/../../src/Controllers/controllerPerfilCliente.php';
 <label>Telefone</label>
 <input type="tel" name="telefone" value="<?= htmlspecialchars($dados['telefone']) ?>">
 
-<label>Documento (RG ou CNH)</label>
-<input type="file" name="documento" accept="image/*">
+<?php if (empty($dados['verificado']) || $dados['verificado'] != 1): ?>
+    <label>Documento (RG ou CNH)</label>
+    <input type="file" name="documento" accept="image/*">
+<?php endif; ?>
 
-<button type="submit">Salvar</button>
+<button type="submit" name="redirect_home" value="1">Salvar</button>
 
 </form>
 </div>

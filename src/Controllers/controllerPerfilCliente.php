@@ -13,7 +13,6 @@ if (!isset($_SESSION['user_id']) || $_SESSION['user_tipo'] !== 'cliente') {
 }
 
 $userId = $_SESSION['user_id'];
-
 $perfilService = new PerfilClienteService($pdo);
 $dados = $perfilService->buscarCliente($userId);
 
@@ -21,7 +20,43 @@ if (!$dados) {
     die('Cliente não encontrado');
 }
 
-// OCR (somente cliente)
+// PROCESSA POST
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    OCRService::processarDocumento($pdo, $userId);
+
+    // Atualiza telefone
+    if (isset($_POST['telefone'])) {
+        $telefone = $_POST['telefone'];
+        $stmt = $pdo->prepare("
+            UPDATE cliente 
+            SET telefone = ?
+            WHERE id = ?
+        ");
+        $stmt->execute([$telefone, $userId]);
+    }
+    if (isset($_FILES['foto_perfil']) && $_FILES['foto_perfil']['error'] === UPLOAD_ERR_OK) {
+        $tmpName = $_FILES['foto_perfil']['tmp_name'];
+        $ext = pathinfo($_FILES['foto_perfil']['name'], PATHINFO_EXTENSION);
+        $novoNome = 'perfil_' . $userId . '.' . $ext;
+        $destino = __DIR__ . '/../../public/uploads/perfis/' . $novoNome;
+
+        if (!is_dir(dirname($destino))) {
+            mkdir(dirname($destino), 0755, true);
+        }
+
+        if (move_uploaded_file($tmpName, $destino)) {
+            $stmt = $pdo->prepare("UPDATE cliente SET foto_perfil = ? WHERE id = ?");
+            $stmt->execute(['uploads/perfis/' . $novoNome, $userId]);
+        }
+    }
+    // Processa OCR (somente se cliente ainda não verificado)
+    if (!$dados['verificado'] || $dados['verificado'] != 1) {
+        OCRService::processarDocumento($pdo, $userId);
+    }
+
+    // Recarrega dados para refletir atualizações
+    $dados = $perfilService->buscarCliente($userId);
 }
+    if (!empty($_POST['redirect_home'])) {
+        header('Location: ../pages/home_cliente.php');
+        exit();
+    }
