@@ -1,5 +1,6 @@
 <?php
-
+require_once __DIR__ . '/../vendor/autoload.php';
+use thiagoalessio\TesseractOCR\TesseractOCR;
 class OCRService
 {
     public static function processarDocumento(PDO $pdo, int $userId): void
