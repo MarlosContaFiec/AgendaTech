@@ -1,19 +1,5 @@
 <?php
-// if (session_status() === PHP_SESSION_NONE) {
-//     session_start();
-// }
-
-// require_once __DIR__ . '/../../include/conexao.php';
-// require_once __DIR__ . '/../../include/functions.php';
-
-// if(!isset($_SESSION['user_id'])){
-//     echo "Usuário não logado";
-//     exit;
-// }
-
-// $user_id = $_SESSION['user_id'];
-
-// gerarPerfil($pdo, $user_id);
+require_once __DIR__ . '/../../src/Controllers/controllerPerfilCliente.php';
 ?>
 
 <!DOCTYPE html>
@@ -37,8 +23,8 @@
 <label>CPF</label>
 <input type="text" value="<?= htmlspecialchars($dados['cpf']) ?>" disabled>
 
-<label>Data de Nascimento</label>
-<input type="date" value="<?= htmlspecialchars($dados['data_nascimento'] ?? '') ?>" readonly>
+<label>Data de Nascimento</label><br>
+<input type="date" value="<?= htmlspecialchars($dados['data_nascimento'] ?? '') ?>" readonly><br>
 
 <label>Email</label>
 <input type="email" value="<?= htmlspecialchars($dados['email']) ?>" disabled>

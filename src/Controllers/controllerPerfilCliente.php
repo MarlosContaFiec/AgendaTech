@@ -25,5 +25,3 @@ if (!$dados) {
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     OCRService::processarDocumento($pdo, $userId);
 }
-
-require __DIR__ . '/../pages/perfil_cliente.php';

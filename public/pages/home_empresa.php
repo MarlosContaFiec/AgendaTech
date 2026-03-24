@@ -54,7 +54,7 @@ if(!isset($_SESSION['user_id']) || $_SESSION['user_tipo'] != 'empresa'){
 
             <img src="https://i.pravatar.cc/40" id="fotoCliente">
             <span><?php echo $usuario['nome_fantasia'] ?></span>
-            <a href="../pages/perfil.php">Configurações</a>
+            <a href="../pages/perfil_empresa.php">Configurações</a>
 
         </div>
 

@@ -61,15 +61,15 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             // Redirecionamento
             if ($user['tipo'] == 'cliente') {
 
-                header("Location: ../pages/page_cliente.php");
+                header("Location: ../pages/home_cliente.php");
 
             } elseif ($user['tipo'] == 'empresa') {
 
-                header("Location: ../pages/page_empresa.php");
+                header("Location: ../pages/home_empresa.php");
 
             } else {
 
-                header("Location: ../pages/page_cliente.php");
+                header("Location: ../pages/home_cliente.php");
             }
 
             exit();
