@@ -26,12 +26,12 @@ class ServicoController
         try {
 
             $dados = [
-                'empresa_id'      => $_SESSION['empresa_id'],
-                'nome'            => trim($_POST['nome'] ?? ''),
-                'descricao'       => trim($_POST['descricao'] ?? ''),
+                'empresa_id' => $_SESSION['empresa_id'],
+                'nome' => trim($_POST['nome'] ?? ''),
+                'descricao' => trim($_POST['descricao'] ?? ''),
                 'duracao_minutos' => (int) ($_POST['duracao_minutos'] ?? 0),
-                'preco_base'      => (float) ($_POST['preco_base'] ?? 0),
-                'ativo'           => isset($_POST['ativo']),
+                'preco_base' => (float) ($_POST['preco_base'] ?? 0),
+                'ativo' => isset($_POST['ativo']),
             ];
 
             $idServico = $this->service->cadastrar($dados);
