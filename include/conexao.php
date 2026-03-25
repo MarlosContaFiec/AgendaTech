@@ -144,7 +144,7 @@ try {
             tipo ENUM('padrao','excecao','unico') NOT NULL,
 
             dia_semana TINYINT UNSIGNED NULL,
-            ocorrencia TINYINT UNSIGNED NULL,
+            qnd_ocorre TINYINT UNSIGNED NULL,
             mes TINYINT UNSIGNED NULL,
 
             unico_dia TINYINT UNSIGNED NULL,
