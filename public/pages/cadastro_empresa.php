@@ -13,9 +13,6 @@ require_once __DIR__ . '/../../src/Controllers/controllerCadastroEmpresa.php';
 </head>
 
 <body>
-
-    <body>
-
         <div class="box-cadastro">
 
             <div class="logo">

@@ -9,15 +9,17 @@ require_once __DIR__ . '/../Services/CNPJService.php';
 require_once __DIR__ . '/../Services/EmailService.php';
 
 $empresaService = new EmpresaService($pdo);
-$emailService = new EmailService();
 
 $erro = null;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
-    $cnpj = preg_replace('/\D/', '', $_POST['cnpj']);
-    $senha = $_POST['senha'];
-    $confirmar = $_POST['confirmar_senha'];
+    $razao_social  = $_POST['razao_social'] ?? '';
+    $nome_fantasia = $_POST['nome_fantasia'] ?? '';
+    $email         = $_POST['email'] ?? '';
+    $cnpj          = preg_replace('/\D/', '', $_POST['cnpj'] ?? '');
+    $senha         = $_POST['senha'] ?? '';
+    $confirmar     = $_POST['confirmar_senha'] ?? '';
 
     if (!CNPJService::validarCNPJ($cnpj)) {
         $erro = "CNPJ inválido";
@@ -28,10 +30,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if (!$erro) {
-        $codigo = rand(100000, 999999);
+
+        $codigo = random_int(100000, 999999);
+
         $_SESSION['codigo_verificacao'] = $codigo;
 
-        EmailService::enviarCodigo($email, $nome, $codigo);
+        $_SESSION['empresa_temp'] = [
+            'razao_social' => $razao_social,
+            'nome_fantasia' => $nome_fantasia,
+            'cnpj' => $cnpj,
+            'email' => $email,
+            'senha' => password_hash($senha, PASSWORD_DEFAULT)
+        ];
+
+        $_SESSION['email'] = $email;
+
+        EmailService::enviarCodigo($email, $nome_fantasia, $codigo);
 
         header("Location: verificacao.php");
         exit;

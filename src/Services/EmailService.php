@@ -1,6 +1,7 @@
 <?php
 
 use PHPMailer\PHPMailer\PHPMailer;
+require_once __DIR__ . '/../../vendor/autoload.php';
 
 class EmailService
 {
@@ -38,8 +39,11 @@ class EmailService
             <p>Seu código de verificação é:</p>
             <h1 style='color:#007bff'>$codigo</h1>
         ";
-
-        $mail->send();
+        try {
+            $mail->send();
+        } catch (\Exception $e) {
+            throw new \Exception('Erro ao enviar email');
+        }
     }
 
     public static function enviarBoasVindas(

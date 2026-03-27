@@ -3,6 +3,7 @@
 namespace App\Controllers;
 
 use App\Services\CadastrarServicoService;
+session_start();
 use PDO;
 use Exception;
 
@@ -22,7 +23,6 @@ class ServicoController
             echo 'Método não permitido';
             return;
         }
-
         try {
 
             $dados = [
@@ -33,6 +33,18 @@ class ServicoController
                 'preco_base' => (float) ($_POST['preco_base'] ?? 0),
                 'ativo' => isset($_POST['ativo']),
             ];
+        if (!isset($_SESSION['empresa_id'])) {
+            $_SESSION['flash_error'] = 'Empresa não autenticada';
+            header('Location: /login');
+            exit;
+        }
+        if ($dados['duracao_minutos'] <= 0) {
+            throw new Exception('Duração inválida');
+        }
+
+        if ($dados['preco_base'] <= 0) {
+            throw new Exception('Preço inválido');
+        }
 
             $idServico = $this->service->cadastrar($dados);
 

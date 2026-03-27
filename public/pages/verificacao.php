@@ -76,7 +76,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
                 $id_usuario = $pdo->lastInsertId();
 
-                $sql = $pdo->prepare('INSERT INTO empresa (id, razao_social,nome_fantasia, cnpj) VALUES (?,?,?)');
+                $sql = $pdo->prepare('INSERT INTO empresa (id, razao_social,nome_fantasia, cnpj) VALUES (?,?,?,?)');
 
                 $sql->execute([
                     $id_usuario,

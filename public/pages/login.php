@@ -57,7 +57,7 @@ require_once __DIR__ . '/../../src/Controllers/controllerLogin.php';
 
     <p>
         Não tem uma conta?
-        <a href="../pages/identificador.php">Criar conta</a>
+        <a href="./identificador.php">Criar conta</a>
     </p>
 
 </div>
