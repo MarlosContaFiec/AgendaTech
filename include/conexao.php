@@ -79,7 +79,18 @@ try {
         FOREIGN KEY (empresa_id) REFERENCES empresa(id)
     )"
     );
-
+    //Serviço agenda
+        $pdo->exec("CREATE TABLE IF NOT EXISTS servico (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            empresa_id INT UNSIGNED NOT NULL,
+            nome VARCHAR(150) NOT NULL,
+            descricao TEXT,
+            duracao_minutos INT NOT NULL,
+            preco_base DECIMAL(10,2) NOT NULL,
+            ativo BOOLEAN DEFAULT TRUE,
+            FOREIGN KEY (empresa_id) REFERENCES empresa(id)
+        )"
+        );
 
     //AGENDAMENTO
         $pdo->exec("CREATE TABLE IF NOT EXISTS agendamento 
@@ -109,19 +120,6 @@ try {
         FOREIGN KEY (cliente_id) REFERENCES usuario(id)
         )"
         );
-    //Serviço agenda
-        $pdo->exec("CREATE TABLE IF NOT EXISTS servico (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            empresa_id INT UNSIGNED NOT NULL,
-            nome VARCHAR(150) NOT NULL,
-            descricao TEXT,
-            duracao_minutos INT NOT NULL,
-            preco_base DECIMAL(10,2) NOT NULL,
-            ativo BOOLEAN DEFAULT TRUE,
-            FOREIGN KEY (empresa_id) REFERENCES empresa(id)
-        )"
-        );
-
     // TAGS
         $pdo->exec("CREATE TABLE IF NOT EXISTS tags 
         (
