@@ -44,7 +44,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         if (move_uploaded_file($tmpName, $destino)) {
-            $stmt = $pdo->prepare("UPDATE cliente SET foto_perfil = ? WHERE id = ?");
+            $stmt = $pdo->prepare("UPDATE usuario SET foto = ? WHERE id = ?");
             $stmt->execute(['uploads/perfis/' . $novoNome, $userId]);
         }
     }

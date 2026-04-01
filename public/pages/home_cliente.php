@@ -6,7 +6,7 @@ require_once __DIR__ . '/../../src/Controllers/controllerHomeCliente.php';
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <link rel="stylesheet" href="/assets/css/page_cliente.css">
+    <link rel="stylesheet" href="../assets/css/page_cliente.css">
     <title>AgendaTech</title>
 </head>
 
