@@ -1,89 +1,101 @@
+// ==========================
 // MOSTRAR / ESCONDER SENHA
+// ==========================
 function toggleSenha(id) {
-
     let campo = document.getElementById(id);
-
-    if (campo.type === "password") {
-        campo.type = "text";
-    } else {
-        campo.type = "password";
-    }
-
+    campo.type = campo.type === "password" ? "text" : "password";
 }
 
 
+// ==========================
 // VERIFICADOR DE SENHA
+// ==========================
 const senha = document.getElementById("senha");
+const confirmarSenha = document.getElementById("confirmar_senha");
 
 if (senha) {
+    senha.addEventListener("keyup", function () {
 
-senha.addEventListener("keyup", function () {
+        let valor = senha.value;
 
-    let valor = senha.value;
+        document.getElementById("char").style.color =
+            valor.length >= 8 ? "#22c55e" : "#f87171";
 
-    let char = document.getElementById("char");
-    let upper = document.getElementById("upper");
-    let lower = document.getElementById("lower");
-    let number = document.getElementById("number");
-    let special = document.getElementById("special");
+        document.getElementById("upper").style.color =
+            /[A-Z]/.test(valor) ? "#22c55e" : "#f87171";
 
-    // mínimo 8 caracteres
-    if (valor.length >= 8) {
-        char.style.color = "#22c55e";
-    } else {
-        char.style.color = "#f87171";
-    }
+        document.getElementById("lower").style.color =
+            /[a-z]/.test(valor) ? "#22c55e" : "#f87171";
 
-    // letra maiúscula
-    if (/[A-Z]/.test(valor)) {
-        upper.style.color = "#22c55e";
-    } else {
-        upper.style.color = "#f87171";
-    }
+        document.getElementById("number").style.color =
+            /[0-9]/.test(valor) ? "#22c55e" : "#f87171";
 
-    // letra minúscula
-    if (/[a-z]/.test(valor)) {
-        lower.style.color = "#22c55e";
-    } else {
-        lower.style.color = "#f87171";
-    }
-
-    // número
-    if (/[0-9]/.test(valor)) {
-        number.style.color = "#22c55e";
-    } else {
-        number.style.color = "#f87171";
-    }
-
-    // caractere especial
-    if (/[!@#$%&*]/.test(valor)) {
-        special.style.color = "#22c55e";
-    } else {
-        special.style.color = "#f87171";
-    }
-
-});
+        document.getElementById("special").style.color =
+            /[!@#$%&*]/.test(valor) ? "#22c55e" : "#f87171";
+    });
 }
 
 
-// MÁSCARA DE CPF
-const cpf = document.getElementById("cpf");
+// ==========================
+// CONFIRMAR SENHA
+// ==========================
+if (confirmarSenha) {
+    confirmarSenha.addEventListener("keyup", function () {
 
-if (cpf) {
+        if (confirmarSenha.value === senha.value) {
+            confirmarSenha.style.border = "2px solid #22c55e";
+        } else {
+            confirmarSenha.style.border = "2px solid #f87171";
+        }
 
-cpf.addEventListener("input", function () {
+    });
+}
 
-    let valor = cpf.value.replace(/\D/g, "");
 
-    if (valor.length > 11) {
-        valor = valor.slice(0, 11);
+// ==========================
+// MÁSCARA DE CNPJ
+// ==========================
+const cnpj = document.getElementById("cnpj");
+
+if (cnpj) {
+    cnpj.addEventListener("input", function () {
+
+        let valor = cnpj.value.replace(/\D/g, "");
+
+        if (valor.length > 14) {
+            valor = valor.slice(0, 14);
+        }
+
+        valor = valor.replace(/^(\d{2})(\d)/, "$1.$2");
+        valor = valor.replace(/^(\d{2})\.(\d{3})(\d)/, "$1.$2.$3");
+        valor = valor.replace(/\.(\d{3})(\d)/, ".$1/$2");
+        valor = valor.replace(/(\d{4})(\d)/, "$1-$2");
+
+        cnpj.value = valor;
+    });
+}
+
+
+// ==========================
+// LIMPAR CAMPOS COM ERRO
+// ==========================
+window.onload = function () {
+
+    if (typeof erros !== "undefined") {
+
+        if (erros.email) {
+            document.getElementById("email").value = "";
+        }
+
+        if (erros.cnpj) {
+            document.getElementById("cnpj").value = "";
+        }
+
+        if (erros.senha) {
+            document.getElementById("senha").value = "";
+            document.getElementById("confirmar_senha").value = "";
+        }
+
     }
 
-    valor = valor.replace(/(\d{3})(\d)/, "$1.$2");
-    valor = valor.replace(/(\d{3})(\d)/, "$1.$2");
-    valor = valor.replace(/(\d{3})(\d{1,2})$/, "$1-$2");
-
-    cpf.value = valor;
-
-});
-}
+};

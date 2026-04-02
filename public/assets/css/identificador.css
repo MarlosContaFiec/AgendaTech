@@ -109,3 +109,8 @@ input[type="button"]:active {
 .btn-empresa:hover {
     box-shadow: 0 15px 35px rgba(162, 28, 175, 0.6);
 }
+
+a {
+    color: rgb(3, 248, 154);
+    text-decoration: none;
+}

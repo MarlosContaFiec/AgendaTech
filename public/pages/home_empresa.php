@@ -1,3 +1,12 @@
+<?php
+// No topo do seu arquivo home_empresa.php
+session_start(); // Garante que a sessão existe para o user_id
+
+// Ajuste o caminho abaixo conforme sua estrutura de pastas
+require_once __DIR__ . '/../../include/functions.php';
+require_once __DIR__ . '/../../include/conexao.php';
+?>
+
 <!DOCTYPE html>
 <html lang="pt-BR">
 
@@ -45,100 +54,25 @@
         </div>
     </aside>
     <div class="main">
-        <div class="topbar">
-            <span class="topbar-title" id="topbar-title">Perfil da Empresa</span>
-            <button class="btn btn-secondary btn-sm" onclick="window.open('/home', '_blank')">
-                👁 Ver página pública
-            </button>
-        </div>
+        <div class="main">
+    <div class="topbar">
+        <span class="topbar-title" id="topbar-title">Perfil da Empresa</span>
+        <button class="btn btn-secondary btn-sm" onclick="window.open('/home', '_blank')">
+            👁 Ver página pública
+        </button>
+    </div>
 
-        <div class="content">
+    <div class="content">
+        <?php 
+            // Supondo que você já tenha o $pdo e o $user_id (da sessão)
+            gerarPerfil($pdo, $_SESSION['user_id']); 
+        ?>
 
-            <div class="section active" id="section-perfil">
-                <div class="section-header">
-                    <div>
-                        <div class="section-title">Perfil da Empresa</div>
-                        <div class="section-sub">Informações exibidas na página pública para os clientes</div>
-                    </div>
-                    <button class="btn btn-primary" onclick="salvarPerfil()">
-                        💾 Salvar alterações
-                    </button>
-                </div>
-
-                <div class="preview-bar" id="preview-bar">
-                    <div class="preview-logo" id="preview-logo">🏢</div>
-                    <div>
-                        <div class="preview-name" id="preview-nf">–</div>
-                        <div class="preview-city" id="preview-city">–</div>
-                    </div>
-                    <div class="preview-colors">
-                        <div class="preview-color-dot" id="prev-cor1" title="Cor primária"></div>
-                        <div class="preview-color-dot" id="prev-cor2" title="Cor secundária"></div>
-                    </div>
-                </div>
-
-                <div class="grid-2">
-                    <div class="card">
-                        <div class="card-title" style="margin-bottom:18px">Dados Cadastrais</div>
-                        <div class="form-group">
-                            <label>Razão Social</label>
-                            <input type="text" id="p-razao" placeholder="Nome legal da empresa">
-                        </div>
-                        <div class="form-group">
-                            <label>Nome Fantasia</label>
-                            <input type="text" id="p-fantasia" placeholder="Nome que os clientes verão">
-                        </div>
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label>CNPJ</label>
-                                <input type="text" id="p-cnpj" placeholder="00.000.000/0000-00">
-                            </div>
-                            <div class="form-group">
-                                <label>Telefone</label>
-                                <input type="text" id="p-telefone" placeholder="(00) 00000-0000">
-                            </div>
-                        </div>
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label>Cidade</label>
-                                <input type="text" id="p-cidade" placeholder="Sua cidade">
-                            </div>
-                            <div class="form-group">
-                                <label>CEP</label>
-                                <input type="text" id="p-cep" placeholder="00000-000">
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="card">
-                        <div class="card-title" style="margin-bottom:18px">Aparência Pública</div>
-                        <div class="form-group">
-                            <label>Descrição</label>
-                            <textarea id="p-descricao" placeholder="Fale um pouco sobre sua empresa..."></textarea>
-                        </div>
-                        <div class="form-group">
-                            <label>URL do Logo</label>
-                            <input type="url" id="p-logo" placeholder="https://...">
-                        </div>
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label>Cor Primária</label>
-                                <div class="color-field">
-                                    <input type="color" id="p-cor1-picker" value="#5b6cff">
-                                    <input type="text" id="p-cor1" value="#5b6cff" placeholder="#000000" maxlength="7">
-                                </div>
-                            </div>
-                            <div class="form-group">
-                                <label>Cor Secundária</label>
-                                <div class="color-field">
-                                    <input type="color" id="p-cor2-picker" value="#ffffff">
-                                    <input type="text" id="p-cor2" value="#ffffff" placeholder="#ffffff" maxlength="7">
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+        <div class="section" id="section-servicos">
             </div>
+        
+        </div>
+</div>
 
             <div class="section" id="section-servicos">
                 <div class="section-header">
@@ -495,7 +429,7 @@
     </div>
 
     <script src="./../assets/js/home_empresa.js"></script>
-    
+
 </body>
 
 </html>
