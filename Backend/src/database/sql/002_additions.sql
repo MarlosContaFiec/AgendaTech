@@ -140,11 +140,111 @@ CREATE TABLE IF NOT EXISTS notificacao_log (
     FOREIGN KEY (regra_id)       REFERENCES regra_empresa(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- ─── Índices adicionais ───────────────────────────────────────
-CREATE INDEX idx_ag_empresa  ON agendamento (empresa_id);
-CREATE INDEX idx_ag_data     ON agendamento (data_agendamento);
-CREATE INDEX idx_ag_status   ON agendamento (status_agendamento);
-CREATE INDEX idx_pl_cliente  ON pontuacao_log (cliente_id);
-CREATE INDEX idx_notif_ag    ON notificacao_log (agendamento_id);
-CREATE INDEX idx_re_empresa  ON regra_empresa (empresa_id, tipo);
-CREATE INDEX idx_sh_servico  ON servico_horario (servico_id);
+-- ============================================================
+-- ÍNDICES IDÊMPOTENTES (MySQL 8 SAFE) trampo em mysql; trampo... ufe!
+-- ============================================================
+
+    -- agendamento.empresa_id
+    SET @sql := (
+    SELECT IF(
+        EXISTS (
+        SELECT 1 FROM information_schema.statistics
+        WHERE table_schema = DATABASE()
+            AND table_name = 'agendamento'
+            AND index_name = 'idx_ag_empresa'
+        ),
+        'SELECT ''idx_ag_empresa OK'';',
+        'CREATE INDEX idx_ag_empresa ON agendamento (empresa_id);'
+    )
+    );
+    PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+    -- agendamento.data_agendamento
+    SET @sql := (
+    SELECT IF(
+        EXISTS (
+        SELECT 1 FROM information_schema.statistics
+        WHERE table_schema = DATABASE()
+            AND table_name = 'agendamento'
+            AND index_name = 'idx_ag_data'
+        ),
+        'SELECT ''idx_ag_data OK'';',
+        'CREATE INDEX idx_ag_data ON agendamento (data_agendamento);'
+    )
+    );
+    PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+    -- agendamento.status_agendamento
+    SET @sql := (
+    SELECT IF(
+        EXISTS (
+        SELECT 1 FROM information_schema.statistics
+        WHERE table_schema = DATABASE()
+            AND table_name = 'agendamento'
+            AND index_name = 'idx_ag_status'
+        ),
+        'SELECT ''idx_ag_status OK'';',
+        'CREATE INDEX idx_ag_status ON agendamento (status_agendamento);'
+    )
+    );
+    PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+    -- pontuacao_log.cliente_id
+    SET @sql := (
+    SELECT IF(
+        EXISTS (
+        SELECT 1 FROM information_schema.statistics
+        WHERE table_schema = DATABASE()
+            AND table_name = 'pontuacao_log'
+            AND index_name = 'idx_pl_cliente'
+        ),
+        'SELECT ''idx_pl_cliente OK'';',
+        'CREATE INDEX idx_pl_cliente ON pontuacao_log (cliente_id);'
+    )
+    );
+    PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+    -- notificacao_log.agendamento_id
+    SET @sql := (
+    SELECT IF(
+        EXISTS (
+        SELECT 1 FROM information_schema.statistics
+        WHERE table_schema = DATABASE()
+            AND table_name = 'notificacao_log'
+            AND index_name = 'idx_notif_ag'
+        ),
+        'SELECT ''idx_notif_ag OK'';',
+        'CREATE INDEX idx_notif_ag ON notificacao_log (agendamento_id);'
+    )
+    );
+    PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+    -- regra_empresa (empresa_id, tipo)
+    SET @sql := (
+    SELECT IF(
+        EXISTS (
+        SELECT 1 FROM information_schema.statistics
+        WHERE table_schema = DATABASE()
+            AND table_name = 'regra_empresa'
+            AND index_name = 'idx_re_empresa'
+        ),
+        'SELECT ''idx_re_empresa OK'';',
+        'CREATE INDEX idx_re_empresa ON regra_empresa (empresa_id, tipo);'
+    )
+    );
+    PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+    -- servico_horario.servico_id
+    SET @sql := (
+    SELECT IF(
+        EXISTS (
+        SELECT 1 FROM information_schema.statistics
+        WHERE table_schema = DATABASE()
+            AND table_name = 'servico_horario'
+            AND index_name = 'idx_sh_servico'
+        ),
+        'SELECT ''idx_sh_servico OK'';',
+        'CREATE INDEX idx_sh_servico ON servico_horario (servico_id);'
+    )
+    );
+    PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;

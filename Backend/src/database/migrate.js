@@ -30,14 +30,16 @@ async function getConnection() {
 
 function splitStatements(sql) {
   return sql
-    .split(';')
+    .replace(/\r/g, '')
+    .split(/;\s*\n/)
     .map(s =>
-      s.split('\n')
+      s
+        .split('\n')
         .filter(l => !l.trim().startsWith('--'))
         .join('\n')
         .trim()
     )
-    .filter(s => s.length > 0);
+    .filter(Boolean);
 }
 
 
