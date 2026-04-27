@@ -1,0 +1,88 @@
+version: '3.9'
+
+services:
+
+  # ─── MySQL ────────────────────────────────────────────────────
+  mysql:
+    image: mysql:8.0
+    container_name: agendamento_mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root@123
+      MYSQL_DATABASE: agendamento
+      MYSQL_USER: agendamento
+      MYSQL_PASSWORD: agendamento@123
+    volumes:
+      - mysql_data:/var/lib/mysql
+    ports:
+      - "3306:3306"
+    networks:
+      - agendamento_net
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "agendamento", "-pagendamento@123"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    command: >
+      --character-set-server=utf8mb4
+      --collation-server=utf8mb4_unicode_ci
+      --default-time-zone=-03:00
+
+  # ─── API Backend ──────────────────────────────────────────────
+  api:
+    build: .
+    container_name: agendamento_api
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_NAME: agendamento
+      DB_USER: agendamento
+      DB_PASS: agendamento@123
+      JWT_SECRET: ${JWT_SECRET:-dev_secret_super_longo_e_seguro_aqui_2024}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-dev_refresh_secret_diferente}
+      JWT_EXPIRES_IN: 15m
+      JWT_REFRESH_EXPIRES_IN: 7d
+      PORT: 3000
+      NODE_ENV: ${NODE_ENV:-development}
+      JOBS_ENABLED: "true"
+      JOB_NOTIFICACOES_CRON: "0 * * * *"
+      JOB_PONTUACAO_CRON: "*/15 * * * *"
+    ports:
+      - "3000:3000"
+    volumes:
+      - uploads_data:/app/uploads
+    networks:
+      - agendamento_net
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ─── Adminer (UI para banco) ───────────────────────────────────
+  adminer:
+    image: adminer:4
+    container_name: agendamento_adminer
+    restart: unless-stopped
+    depends_on:
+      - mysql
+    ports:
+      - "8080:8080"
+    networks:
+      - agendamento_net
+    environment:
+      ADMINER_DEFAULT_SERVER: mysql
+      ADMINER_DESIGN: pepa-linha-dark
+
+volumes:
+  mysql_data:
+  uploads_data:
+
+networks:
+  agendamento_net:
+    driver: bridge
