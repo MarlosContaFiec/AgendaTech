@@ -268,11 +268,17 @@ exit /b 1
 
 :WaitApi
 for /L %%I in (1,1,40) do (
-    curl --noproxy "*" -v http://127.0.0.1:3000/health
+    powershell -NoProfile -Command ^
+      "try { ^
+         $r = Invoke-WebRequest -Uri 'http://127.0.0.1:3000/health' -UseBasicParsing -TimeoutSec 2; ^
+         if ($r.StatusCode -eq 200) { exit 0 } ^
+       } catch { exit 1 }"
     if not errorlevel 1 exit /b 0
+
     if %%I==1  echo  Aguardando API responder...
     if %%I==10 echo  Ainda aguardando... o banco de dados pode estar subindo.
     if %%I==25 echo  Demorando mais que o esperado. Aguarde...
+
     timeout /t 3 /nobreak >nul
 )
 exit /b 1

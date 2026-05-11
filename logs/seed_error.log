@@ -1,0 +1,22 @@
+[27/04/2026 14:59:49,56] ERRO NO SEED 
+[27/04/2026 15:00:20,94] ERRO NO SEED 
+[27/04/2026 15:06:55,16] Seed failed 
+---------------------------------------- 
+time="2026-04-27T15:06:55-03:00" level=warning msg="c:\\Users\\41952\\Pictures\\AgendaTech\\AgendaTech\\Backend\\docker-compose.yml: the attribute `version` is obsolete, it will be ignored, please remove it to avoid potential confusion"
+
+🔌 Conectando ao MySQL...
+   Conexão estabelecida ✓
+
+▶  Executando: 001_schema.sql
+   ⚠  (1061) Duplicate key name 'idx_ag_cliente'
+   ⚠  (1061) Duplicate key name 'idx_ag_servico'
+   ⚠  (1061) Duplicate key name 'idx_msg_empresa'
+   ⚠  (1061) Duplicate key name 'idx_msg_cliente'
+   ⚠  (1061) Duplicate key name 'idx_av_agendamento'
+   ⚠  (1061) Duplicate key name 'idx_servico_empresa'
+   ⚠  (1061) Duplicate key name 'idx_tags_empresa'
+   ⚠  (1061) Duplicate key name 'idx_regras_empresa'
+✅ 001_schema.sql — 10 statements ok, 8 avisos
+
+▶  Executando: 002_additions.sql
+---------------------------------------- 
