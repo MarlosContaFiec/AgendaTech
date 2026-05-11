@@ -34,16 +34,27 @@ if (env.server.env !== 'test') {
 app.use('/uploads', express.static(path.resolve(env.upload.path)));
 
 
-app.get('/health', async (_req, res) => {
+// app.get('/health', async (_req, res) => {
+//   try {
+//     const db = require('./config/database');
+//     await db.queryOne('SELECT 1');
+//     res.json({ success: true, status: 'ok', timestamp: new Date().toISOString() });
+//   } catch {
+//     res.status(503).json({ success: false, status: 'db_error' });
+//   }
+// });
+app.get('/health', (_req, res) => {
+  res.status(200).json({ ok: true });
+});
+app.get('/health/db', async (_req, res) => {
   try {
     const db = require('./config/database');
     await db.queryOne('SELECT 1');
-    res.json({ success: true, status: 'ok', timestamp: new Date().toISOString() });
-  } catch {
-    res.status(503).json({ success: false, status: 'db_error' });
+    res.json({ db: 'ok' });
+  } catch (err) {
+    res.status(503).json({ db: 'error' });
   }
 });
-
 
 app.use('/api/auth',          require('./modules/auth/auth.routes'));
 app.use('/api/empresa',       require('./modules/empresa/empresa.routes'));

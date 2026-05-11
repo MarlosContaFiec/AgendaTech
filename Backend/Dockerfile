@@ -20,4 +20,4 @@ USER node
 EXPOSE 3000
 
 # Executa migração e depois inicia o servidor
-CMD ["sh", "-c", "node src/database/migrate.js && node src/server.js"]
+CMD ["node", "src/server.js"]

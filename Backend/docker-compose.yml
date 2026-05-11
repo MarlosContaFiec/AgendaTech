@@ -14,8 +14,6 @@ services:
       MYSQL_PASSWORD: agendamento@123
     volumes:
       - mysql_data:/var/lib/mysql
-    ports:
-      - "3306:3306"
     networks:
       - agendamento_net
     healthcheck:
