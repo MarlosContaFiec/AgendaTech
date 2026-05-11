@@ -268,11 +268,9 @@ exit /b 1
 
 :WaitApi
 for /L %%I in (1,1,40) do (
-    powershell -NoProfile -Command ^
-      "try { ^
-         $r = Invoke-WebRequest -Uri 'http://127.0.0.1:3000/health' -UseBasicParsing -TimeoutSec 2; ^
-         if ($r.StatusCode -eq 200) { exit 0 } ^
-       } catch { exit 1 }"
+
+    powershell -NoProfile -Command "try { $r = Invoke-WebRequest 'http://127.0.0.1:3000/health' -UseBasicParsing -TimeoutSec 2; if ($r.StatusCode -eq 200) { exit 0 } else { exit 1 } } catch { exit 1 }"
+
     if not errorlevel 1 exit /b 0
 
     if %%I==1  echo  Aguardando API responder...
@@ -281,4 +279,5 @@ for /L %%I in (1,1,40) do (
 
     timeout /t 3 /nobreak >nul
 )
+
 exit /b 1
