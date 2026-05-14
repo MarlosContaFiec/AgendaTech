@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 
+
 // ─── API ──────────────────────────────────────────────────────────────────────
 const API_BASE = "http://localhost:3000";
 
@@ -262,7 +263,7 @@ function InputSenha({ label, erro, placeholder, value, onChange, obrigatorio }) 
           position:"absolute", left:13, top:"50%", transform:"translateY(-50%)",
           fontSize:"1rem", pointerEvents:"none",
           color: foco ? C.accent : C.muted, transition:"color .2s",
-        }}>🔒</span>
+        }}  className="material-symbols-outlined">Lock</span>
         <input
           type={ver ? "text" : "password"}
           placeholder={placeholder}
@@ -283,7 +284,7 @@ function InputSenha({ label, erro, placeholder, value, onChange, obrigatorio }) 
           position:"absolute", right:12, top:"50%", transform:"translateY(-50%)",
           background:"none", border:"none", cursor:"pointer",
           color:C.muted, fontSize:"1rem", padding:4, lineHeight:1,
-        }}>{ver ? "🙈" : "👁️"}</button>
+        }} className="material-symbols-outlined">{ver ? "Visibility_Off" : "Visibility"}</button>
       </div>
       <ErroLabel texto={erro} />
     </div>
@@ -408,7 +409,7 @@ function TelaLogin({ onCriarConta, onLoginOk }) {
       <div style={{ display:"flex", flexDirection:"column", gap:14 }}>
         <Input
           label="CPF ou CNPJ"
-          icone="🪪"
+          icone={<span className="material-symbols-outlined">Person</span>}
           placeholder="000.000.000-00  ou  00.000.000/0001-00"
           value={doc}
           onChange={aoDigitarDoc}
@@ -572,7 +573,7 @@ function TelaCadastroCliente({ onConcluir, onVoltar }) {
       </div>
 
       <div style={{ display:"flex", flexDirection:"column", gap:13 }}>
-        <Input label="Nome Completo" icone="✏️" placeholder="Ex: Maria Silva Santos"
+        <Input label="Nome Completo" className="" placeholder="Ex: Maria Silva Santos"
           value={f.nome} onChange={v=>upd("nome",v.target.value)} erro={e.nome} obrigatorio />
         <Input label="CPF" icone="🪪" placeholder="000.000.000-00"
           value={f.cpf} onChange={v=>upd("cpf",maskCPF(v.target.value))} erro={e.cpf} obrigatorio />

@@ -1,10 +1,15 @@
-time="2026-05-11T13:58:24-03:00" level=warning msg="c:\\Users\\41952\\Pictures\\AgendaTech\\AgendaTech\\Backend\\docker-compose.yml: the attribute `version` is obsolete, it will be ignored, please remove it to avoid potential confusion"
+time="2026-05-13T16:39:54-03:00" level=warning msg="C:\\Users\\41963\\Desktop\\bianca quer ver o tcc\\AgendaTech\\Backend\\docker-compose.yml: the attribute `version` is obsolete, it will be ignored, please remove it to avoid potential confusion"
 
 🔌 Conectando ao MySQL...
    Conexão estabelecida ✓
 
-⏭  Já executado: 001_schema.sql
-⏭  Já executado: 002_additions.sql
-⏭  Já executado: 003_seed.sql
-🎉 Migrações concluídas!
+▶  Executando: 001_schema.sql
+✅ 001_schema.sql — 18 statements ok, 0 avisos
 
+▶  Executando: 002_additions.sql
+
+❌ Erro fatal no statement:
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt
+
+Mensagem: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'EXECUTE stmt; DEALLOCATE PREPARE stmt' at line 1
+❌ Falha: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'EXECUTE stmt; DEALLOCATE PREPARE stmt' at line 1

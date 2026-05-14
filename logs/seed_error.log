@@ -20,3 +20,76 @@ time="2026-04-27T15:06:55-03:00" level=warning msg="c:\\Users\\41952\\Pictures\\
 
 ▶  Executando: 002_additions.sql
 ---------------------------------------- 
+ 
+[13/05/2026 16:24:50,84] 
+time="2026-05-13T16:24:51-03:00" level=warning msg="C:\\Users\\41963\\Desktop\\bianca quer ver o tcc\\AgendaTech\\Backend\\docker-compose.yml: the attribute `version` is obsolete, it will be ignored, please remove it to avoid potential confusion"
+
+🔌 Conectando ao MySQL...
+   Conexão estabelecida ✓
+
+▶  Executando: 001_schema.sql
+✅ 001_schema.sql — 18 statements ok, 0 avisos
+
+▶  Executando: 002_additions.sql
+
+❌ Erro fatal no statement:
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt
+
+Mensagem: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'EXECUTE stmt; DEALLOCATE PREPARE stmt' at line 1
+❌ Falha: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'EXECUTE stmt; DEALLOCATE PREPARE stmt' at line 1
+ 
+[13/05/2026 16:38:16,08] 
+time="2026-05-13T16:38:16-03:00" level=warning msg="C:\\Users\\41963\\Desktop\\bianca quer ver o tcc\\AgendaTech\\Backend\\docker-compose.yml: the attribute `version` is obsolete, it will be ignored, please remove it to avoid potential confusion"
+
+🔌 Conectando ao MySQL...
+   Conexão estabelecida ✓
+
+⏭  Já executado: 001_schema.sql
+▶  Executando: 002_additions.sql
+   ⚠  (1060) Duplicate column name 'score'
+   ⚠  (1060) Duplicate column name 'endereco'
+   ⚠  (1060) Duplicate column name 'numero'
+   ⚠  (1060) Duplicate column name 'complemento'
+   ⚠  (1060) Duplicate column name 'bairro'
+   ⚠  (1060) Duplicate column name 'cidade'
+   ⚠  (1060) Duplicate column name 'estado'
+   ⚠  (1060) Duplicate column name 'nicho'
+   ⚠  (1060) Duplicate column name 'sub_nicho'
+   ⚠  (1060) Duplicate column name 'max_agendamentos_global'
+   ⚠  (1060) Duplicate column name 'verificada'
+   ⚠  (1060) Duplicate column name 'site'
+   ⚠  (1060) Duplicate column name 'aceitamento_automatico'
+   ⚠  (1060) Duplicate column name 'max_por_horario'
+   ⚠  (1060) Duplicate column name 'hora_inicio'
+   ⚠  (1060) Duplicate column name 'hora_fim'
+   ⚠  (1060) Duplicate column name 'intervalo_minutos'
+   ⚠  (1060) Duplicate column name 'empresa_id'
+   ⚠  (1060) Duplicate column name 'notas'
+   ⚠  (1060) Duplicate column name 'criado_em'
+   ⚠  (1060) Duplicate column name 'aceito_em'
+   ⚠  (1060) Duplicate column name 'cancelado_em'
+   ⚠  (1060) Duplicate column name 'reagendado_de'
+   ⚠  (1060) Duplicate column name 'motivo_cancelamento'
+
+❌ Erro fatal no statement:
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt
+
+Mensagem: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'EXECUTE stmt; DEALLOCATE PREPARE stmt' at line 1
+❌ Falha: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'EXECUTE stmt; DEALLOCATE PREPARE stmt' at line 1
+ 
+[13/05/2026 16:39:54,09] 
+time="2026-05-13T16:39:54-03:00" level=warning msg="C:\\Users\\41963\\Desktop\\bianca quer ver o tcc\\AgendaTech\\Backend\\docker-compose.yml: the attribute `version` is obsolete, it will be ignored, please remove it to avoid potential confusion"
+
+🔌 Conectando ao MySQL...
+   Conexão estabelecida ✓
+
+▶  Executando: 001_schema.sql
+✅ 001_schema.sql — 18 statements ok, 0 avisos
+
+▶  Executando: 002_additions.sql
+
+❌ Erro fatal no statement:
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt
+
+Mensagem: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'EXECUTE stmt; DEALLOCATE PREPARE stmt' at line 1
+❌ Falha: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'EXECUTE stmt; DEALLOCATE PREPARE stmt' at line 1
