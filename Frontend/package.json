@@ -1,5 +1,5 @@
 {
-  "name": "bianca-quer-ver-o-tcc",
+  "name": "agendatech",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -14,6 +14,7 @@
     "react": "^19.2.5",
     "react-dom": "^19.2.5",
     "react-icons": "^5.6.0",
+    "react-router-dom": "^7.15.1",
     "tailwindcss": "^4.2.4"
   },
   "devDependencies": {

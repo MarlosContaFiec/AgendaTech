@@ -7,7 +7,7 @@ function errorHandler(err, req, res, next) {
 
   
   if (err.code === 'ER_DUP_ENTRY') {
-    const field = err.message.match(/key '(.+?)'/)?.[1] || 'campo';
+    const field = err.message.match(/for key '(.+?)'/)?.[1] || 'campo';
     return res_.badRequest(res, `Valor duplicado no campo: ${field}`);
   }
   if (err.code === 'ER_NO_REFERENCED_ROW_2') {

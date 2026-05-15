@@ -8,8 +8,9 @@ const { validateQuery, schemas } = require('../../middlewares/validate');
 
 
 async function listarEmpresas(filters = {}) {
-  const { busca, nicho, cidade, estado, pagina = 1, limite = 20 } = filters;
-  
+  const { busca, nicho, cidade, estado } = filters;
+  const pagina = parseInt(filters.pagina) || 1;
+  const limite = parseInt(filters.limite) || 20;
   const where = ['u.ativo = 1'];
   const params = [];
 
@@ -18,21 +19,18 @@ async function listarEmpresas(filters = {}) {
     const t = `%${busca}%`;
     params.push(t, t, t);
   }
-  if (nicho)  { where.push('e.nicho = ?');        params.push(nicho); }
-  if (cidade) { where.push('e.cidade LIKE ?');    params.push(`%${cidade}%`); }
-  if (estado) { where.push('e.estado = ?');       params.push(estado); }
+  if (nicho) { where.push('e.nicho = ?'); params.push(nicho); }
+  if (cidade) { where.push('e.cidade LIKE ?'); params.push(`%${cidade}%`); }
+  if (estado) { where.push('e.estado = ?'); params.push(estado); }
 
-  const offset = (parseInt(pagina) - 1) * parseInt(limite);
-  params.push(parseInt(limite), offset);
+  const offset = (pagina - 1) * limite;
 
-  const lim = parseInt(limite);
-  const off = (parseInt(pagina) - 1) * lim;
   return db.queryRaw(
     `SELECT e.id, e.nome_fantasia, e.nicho, e.sub_nicho, e.cidade, e.estado,
             e.endereco, e.numero, e.bairro, e.telefone, e.site, e.verificada,
             ep.descricao, ep.logo_url, ep.cor_primaria,
-            ROUND(AVG(av.estrelas), 1)    AS media_avaliacao,
-            COUNT(DISTINCT ag.id)         AS total_agendamentos_mes
+            ROUND(AVG(av.estrelas), 1) AS media_avaliacao,
+            COUNT(DISTINCT ag.id) AS total_agendamentos_mes
      FROM empresa e
      JOIN usuario u ON u.id = e.id
      LEFT JOIN empresaProfile ep ON ep.empresa_id = e.id
@@ -42,10 +40,11 @@ async function listarEmpresas(filters = {}) {
      WHERE ${where.join(' AND ')}
      GROUP BY e.id
      ORDER BY total_agendamentos_mes DESC, e.id DESC
-     LIMIT ${lim} OFFSET ${off}`,
+     LIMIT ${limite} OFFSET ${offset}`,
     params
   );
 }
+
 
 async function getPerfilPublico(empresaId) {
   const empresa = await db.queryOne(
@@ -98,7 +97,7 @@ async function getDestaquesUltimas24h() {
   return db.query(
     `SELECT e.id, e.nome_fantasia, e.nicho, e.sub_nicho, e.cidade, e.estado,
             ep.descricao, ep.logo_url, ep.cor_primaria,
-            COUNT(DISTINCT ag.id)      AS agendamentos_24h,
+            COUNT(DISTINCT ag.id) AS agendamentos_24h,
             ROUND(AVG(av.estrelas), 1) AS media_avaliacao
      FROM empresa e
      JOIN usuario u ON u.id = e.id AND u.ativo = 1
@@ -107,6 +106,7 @@ async function getDestaquesUltimas24h() {
            AND ag.criado_em >= DATE_SUB(NOW(), INTERVAL 24 HOUR)
      LEFT JOIN avaliacao av ON av.agendamento_id = ag.id
      GROUP BY e.id
+     HAVING agendamentos_24h > 0
      ORDER BY agendamentos_24h DESC, e.id DESC
      LIMIT 10`
   );

@@ -9,8 +9,8 @@ async function getPerfil(req, res, next) {
 
 async function updatePerfil(req, res, next) {
   try {
-    await svc.updatePerfil(req.user.id, req.body);
-    res_.ok(res, null, 'Perfil atualizado');
+    const perfil = await svc.updatePerfil(req.user.id, req.body);
+    res_.ok(res, perfil, 'Perfil atualizado');
   } catch (err) { next(err); }
 }
 

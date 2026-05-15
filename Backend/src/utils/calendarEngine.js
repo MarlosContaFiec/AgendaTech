@@ -118,15 +118,53 @@ async function isDayOpen(empresaId, date) {
  * Retorna objeto { 'YYYY-MM-DD': { aberto, tags } }
  */
 async function resolveMonth(empresaId, year, month) {
+  const rules = await db.query(
+    `SELECT r.*, t.nome, t.label, t.cor, t.aceita_agendamento, t.info
+     FROM regras r
+     JOIN tags t ON t.id = r.tag_id
+     WHERE r.empresa_id = ? AND r.ativo = 1 AND t.empresa_id = ?
+     ORDER BY r.prioridade DESC`,
+    [empresaId, empresaId]
+  );
+
   const result = {};
   const daysInMonth = new Date(year, month, 0).getDate();
 
   for (let day = 1; day <= daysInMonth; day++) {
-    const date = `${year}-${String(month).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
-    result[date] = await isDayOpen(empresaId, date);
+    const date = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+
+    const matched = rules.filter(r => ruleMatchesDate(r, date));
+    const tagMap = new Map();
+    for (const r of matched) {
+      if (!tagMap.has(r.tag_id) || r.prioridade > tagMap.get(r.tag_id).prioridade) {
+        tagMap.set(r.tag_id, r);
+      }
+    }
+    const tags = Array.from(tagMap.values()).map(r => ({
+      id: r.tag_id,
+      nome: r.nome,
+      label: r.label,
+      cor: r.cor,
+      aceita_agendamento: r.aceita_agendamento,
+      info: r.info,
+      prioridade: r.prioridade,
+      tipo_regra: r.tipo,
+    }));
+
+    if (tags.length === 0) {
+      result[date] = { aberto: true, tags: [] };
+    } else {
+      const bloqueada = tags.find(t => t.aceita_agendamento === 0);
+      result[date] = {
+        aberto: !bloqueada,
+        tags,
+        motivo_fechamento: bloqueada ? bloqueada.label : null,
+      };
+    }
   }
 
   return result;
 }
+
 
 module.exports = { resolveTagsForDay, isDayOpen, resolveMonth, ruleMatchesDate };

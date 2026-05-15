@@ -1,5 +1,6 @@
 'use strict';
 const db = require('../../config/database');
+const AppError = require('../../utils/AppError');
 
 async function list(empresaId) {
   const servicos = await db.query(
@@ -38,17 +39,21 @@ function parseServico(s) {
     horarios: s.horarios_raw
       ? s.horarios_raw.split(',').map(h => {
           const [dh, range] = h.split('|');
-          const [hi, hf]    = range.split('-');
+          const [hi, hf] = range.split('-');
           return { dia_semana: dh === 'null' ? null : Number(dh), hora_inicio: hi, hora_fim: hf };
         })
       : [],
     tag_ids: s.tag_ids_raw ? s.tag_ids_raw.split(',').map(Number) : [],
     horarios_raw: undefined,
-    tag_ids_raw:  undefined,
+    tag_ids_raw: undefined,
   };
 }
 
 async function create(empresaId, data) {
+  if (!data.nome?.trim()) throw new AppError(400, 'Nome do serviço é obrigatório');
+  if (!data.duracao_minutos || data.duracao_minutos < 1) throw new AppError(400, 'Duração inválida');
+  if (data.preco_base == null || data.preco_base < 0) throw new AppError(400, 'Preço inválido');
+
   const { horarios = [], tag_ids = [], ...fields } = data;
   const conn = await db.beginTransaction();
   try {
@@ -81,17 +86,21 @@ async function create(empresaId, data) {
   } catch (err) {
     await conn.rollback();
     conn.release();
-    throw err;
+    console.error('Erro ao criar serviço:', err);
+    throw new AppError(500, 'Erro ao criar serviço');
   }
 }
 
 async function update(empresaId, id, data) {
+  const exists = await db.queryOne(`SELECT id FROM servico WHERE id = ? AND empresa_id = ?`, [id, empresaId]);
+  if (!exists) throw new AppError(404, 'Serviço não encontrado');
+
   const { horarios, tag_ids, ...fields } = data;
   const conn = await db.beginTransaction();
   try {
     const sets = [], vals = [];
-    const allowed = ['nome','descricao','duracao_minutos','preco_base','ativo',
-                     'aceitamento_automatico','max_por_horario','hora_inicio','hora_fim','intervalo_minutos'];
+    const allowed = ['nome', 'descricao', 'duracao_minutos', 'preco_base', 'ativo',
+      'aceitamento_automatico', 'max_por_horario', 'hora_inicio', 'hora_fim', 'intervalo_minutos'];
     for (const k of allowed) {
       if (fields[k] !== undefined) { sets.push(`${k} = ?`); vals.push(fields[k]); }
     }
@@ -125,15 +134,17 @@ async function update(empresaId, id, data) {
   } catch (err) {
     await conn.rollback();
     conn.release();
-    throw err;
+    console.error('Erro ao atualizar serviço:', err);
+    throw new AppError(500, 'Erro ao atualizar serviço');
   }
 }
 
 async function remove(empresaId, id) {
-  return db.execute(
+  const r = await db.execute(
     `UPDATE servico SET ativo = FALSE WHERE id = ? AND empresa_id = ?`,
     [id, empresaId]
   );
+  if (r.affectedRows === 0) throw new AppError(404, 'Serviço não encontrado');
 }
 
 module.exports = { list, getById, create, update, remove };

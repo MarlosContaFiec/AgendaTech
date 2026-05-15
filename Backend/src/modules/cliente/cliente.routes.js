@@ -1,11 +1,10 @@
 'use strict';
-const db     = require('../../config/database');
-const res_   = require('../../utils/response');
+const db = require('../../config/database');
+const AppError = require('../../utils/AppError');
+const res_ = require('../../utils/response');
 const router = require('express').Router();
-const { requireCliente, authenticate } = require('../../middlewares/auth');
-const { validate, schemas }            = require('../../middlewares/validate');
-
-
+const { requireCliente } = require('../../middlewares/auth');
+const { validate, schemas } = require('../../middlewares/validate');
 
 async function getPerfil(clienteId) {
   return db.queryOne(
@@ -19,15 +18,16 @@ async function getPerfil(clienteId) {
 }
 
 async function updatePerfil(clienteId, data) {
-  const { nome, telefone, data_nascimento} = data;
+  const { nome, telefone, data_nascimento } = data;
   await db.execute(
     `UPDATE cliente SET
-       nome            = COALESCE(?, nome),
-       telefone        = COALESCE(?, telefone),
-       data_nascimento = COALESCE(?, data_nascimento),
+       nome = COALESCE(?, nome),
+       telefone = COALESCE(?, telefone),
+       data_nascimento = COALESCE(?, data_nascimento)
      WHERE id = ?`,
-    [nome||null, telefone||null, data_nascimento||null, clienteId]
+    [nome || null, telefone || null, data_nascimento || null, clienteId]
   );
+  return getPerfil(clienteId);
 }
 
 async function getScoreLog(clienteId) {
@@ -60,26 +60,19 @@ async function getCalendario(clienteId) {
   );
 }
 
-
-
-router.get('/perfil',          requireCliente, async (req, res, next) => {
+router.get('/perfil', requireCliente, async (req, res, next) => {
   try { res_.ok(res, await getPerfil(req.user.id)); } catch (e) { next(e); }
 });
 
-router.put('/perfil',          requireCliente, validate(schemas.updateClientePerfil), async (req, res, next) => {
-  try { await updatePerfil(req.user.id, req.body); res_.ok(res, null, 'Perfil atualizado'); } catch (e) { next(e); }
+router.put('/perfil', requireCliente, validate(schemas.updateClientePerfil), async (req, res, next) => {
+  try { res_.ok(res, await updatePerfil(req.user.id, req.body), 'Perfil atualizado'); } catch (e) { next(e); }
 });
 
-router.get('/score',           requireCliente, async (req, res, next) => {
+router.get('/score', requireCliente, async (req, res, next) => {
   try { res_.ok(res, await getScoreLog(req.user.id)); } catch (e) { next(e); }
 });
 
-router.post('/cartoes',        requireCliente, async (req, res, next) => {
-  try { res_.created(res, await addCartao(req.user.id, req.body)); } catch (e) { next(e); }
-});
-
-router.get('/calendario',      requireCliente, async (req, res, next) => {
+router.get('/calendario', requireCliente, async (req, res, next) => {
   try { res_.ok(res, await getCalendario(req.user.id)); } catch (e) { next(e); }
 });
-
 module.exports = router;

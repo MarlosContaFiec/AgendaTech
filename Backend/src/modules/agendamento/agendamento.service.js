@@ -1,14 +1,63 @@
 'use strict';
-const db  = require('../../config/database');
+const db = require('../../config/database');
+const AppError = require('../../utils/AppError');
 const cal = require('../../utils/calendarEngine');
 const tpl = require('../../utils/templateEngine');
 
+async function enviarNotificacaoAutomatica(empresaId, clienteId, agendamentoId, tipo) {
+  try {
+    const regra = await db.queryOne(
+      `SELECT re.*, e.nome_fantasia FROM regra_empresa re JOIN empresa e ON e.id=re.empresa_id
+       WHERE re.empresa_id=? AND re.tipo='notificacao' AND re.tipo_notificacao=? AND re.ativo=1 LIMIT 1`,
+      [empresaId, tipo]
+    );
+    if (!regra?.mensagem_template) return;
 
+    const ag = await db.queryOne(`SELECT * FROM agendamento WHERE id=?`, [agendamentoId]);
+    const cliente = await db.queryOne(`SELECT c.nome, u.email FROM cliente c JOIN usuario u ON u.id=c.id WHERE c.id=?`, [clienteId]);
+    const servico = await db.queryOne(`SELECT nome FROM servico WHERE id=?`, [ag?.servico_id]);
 
+    const tplData = {
+      nome_cliente: cliente?.nome,
+      nome_empresa: regra.nome_fantasia,
+      data: ag?.data_agendamento,
+      hora: ag?.hora_inicio,
+      servico: servico?.nome,
+    };
+
+    const msg = tpl.render(regra.mensagem_template, tplData);
+
+    await db.execute(
+      `INSERT INTO mensagem (empresa_id, cliente_id, tipo, mensagem, automatica, enviado_por)
+       VALUES (?, ?, ?, ?, TRUE, 'empresa')`,
+      [empresaId, clienteId, tipo, msg]
+    );
+
+    await db.execute(
+      `INSERT INTO notificacao_log (empresa_id, cliente_id, agendamento_id, regra_id, tipo, mensagem)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [empresaId, clienteId, agendamentoId, regra.id, tipo, msg]
+    );
+
+    if (cliente?.email) {
+      const email = require('../../utils/email');
+      let html;
+      if (tipo === 'confirmacao') {
+        html = email.confirmacaoTemplate(cliente.nome, servico?.nome, ag?.data_agendamento, ag?.hora_inicio, regra.nome_fantasia);
+        await email.send(cliente.email, `Agendamento confirmado - ${regra.nome_fantasia}`, html);
+      } else if (tipo === 'lembrete') {
+        html = email.lembreteTemplate(cliente.nome, servico?.nome, ag?.data_agendamento, ag?.hora_inicio, regra.nome_fantasia);
+        await email.send(cliente.email, `Lembrete - ${regra.nome_fantasia}`, html);
+      }
+    }
+  } catch (err) {
+    console.error('[NOTIF] Falha ao enviar notificação automática:', err.message);
+  }
+}
 /** Gera slots de horário para um serviço em uma data */
 async function getSlots(empresaId, servicoId, dateRaw) {
-  const date = String(dateRaw).slice(0, 10); 
-  
+  const date = String(dateRaw).slice(0, 10);
+
   const { aberto, tags, motivo_fechamento } = await cal.isDayOpen(empresaId, date);
   if (!aberto) return { disponivel: false, motivo: motivo_fechamento, slots: [] };
 
@@ -18,7 +67,6 @@ async function getSlots(empresaId, servicoId, dateRaw) {
   );
   if (!servico) return { disponivel: false, motivo: 'Serviço não encontrado ou inativo', slots: [] };
 
-  
   const tagIdsServico = await db.query(
     `SELECT tag_id FROM servico_tag WHERE servico_id = ?`, [servicoId]
   );
@@ -28,7 +76,6 @@ async function getSlots(empresaId, servicoId, dateRaw) {
     if (!temTagRequerida) return { disponivel: false, motivo: 'Serviço não disponível neste dia', slots: [] };
   }
 
-  
   const d = new Date(date + 'T00:00:00');
   const diaSemana = d.getDay();
   let horarioServico = await db.queryOne(
@@ -37,7 +84,7 @@ async function getSlots(empresaId, servicoId, dateRaw) {
      ORDER BY (dia_semana IS NULL) ASC, dia_semana ASC LIMIT 1`,
     [servicoId, diaSemana]
   );
-  
+
   if (!horarioServico) {
     horarioServico = await db.queryOne(
       `SELECT hora_inicio, hora_fim FROM servico_horario
@@ -45,7 +92,7 @@ async function getSlots(empresaId, servicoId, dateRaw) {
       [servicoId]
     );
   }
-  
+
   if (!horarioServico && servico.hora_inicio && servico.hora_fim) {
     horarioServico = { hora_inicio: servico.hora_inicio, hora_fim: servico.hora_fim };
   }
@@ -54,16 +101,17 @@ async function getSlots(empresaId, servicoId, dateRaw) {
   const { hora_inicio: hiStr, hora_fim: hfStr } = horarioServico;
   const duracao = servico.duracao_minutos + (servico.intervalo_minutos || 0);
 
-  
+  const empresa = await db.queryOne(`SELECT max_agendamentos_global FROM empresa WHERE id=?`, [empresaId]);
+  const maxGlobal = empresa?.max_agendamentos_global;
+
   const slots = [];
   let current = toMinutes(hiStr);
-  const end   = toMinutes(hfStr) - servico.duracao_minutos;
+  const end = toMinutes(hfStr) - servico.duracao_minutos;
 
   while (current <= end) {
     const horaInicioSlot = fromMinutes(current);
-    const horaFimSlot    = fromMinutes(current + servico.duracao_minutos);
+    const horaFimSlot = fromMinutes(current + servico.duracao_minutos);
 
-    
     const [{ qtd: qtdServico }] = await db.query(
       `SELECT COUNT(*) AS qtd FROM agendamento
        WHERE servico_id = ? AND data_agendamento = ? AND hora_inicio = ?
@@ -71,7 +119,6 @@ async function getSlots(empresaId, servicoId, dateRaw) {
       [servicoId, date, horaInicioSlot + ':00']
     );
 
-    
     const [{ qtd: qtdGlobal }] = await db.query(
       `SELECT COUNT(*) AS qtd FROM agendamento
        WHERE empresa_id = ? AND data_agendamento = ?
@@ -81,16 +128,13 @@ async function getSlots(empresaId, servicoId, dateRaw) {
     );
 
     const maxServico = servico.max_por_horario;
-    const empresa    = await db.queryOne(`SELECT max_agendamentos_global FROM empresa WHERE id=?`, [empresaId]);
-    const maxGlobal  = empresa?.max_agendamentos_global;
-
     const livreServico = maxServico === null || qtdServico < maxServico;
-    const livreGlobal  = maxGlobal  === null || qtdGlobal  < maxGlobal;
+    const livreGlobal = maxGlobal === null || qtdGlobal < maxGlobal;
 
     slots.push({
       hora_inicio: horaInicioSlot,
-      hora_fim:    horaFimSlot,
-      disponivel:  livreServico && livreGlobal,
+      hora_fim: horaFimSlot,
+      disponivel: livreServico && livreGlobal,
       vagas_restantes_servico: maxServico !== null ? Math.max(0, maxServico - qtdServico) : null,
     });
 
@@ -104,50 +148,44 @@ function toMinutes(timeStr) {
   const [h, m] = timeStr.split(':').map(Number);
   return h * 60 + m;
 }
+
 function fromMinutes(mins) {
-  return `${String(Math.floor(mins / 60)).padStart(2,'0')}:${String(mins % 60).padStart(2,'0')}`;
+  return `${String(Math.floor(mins / 60)).padStart(2, '0')}:${String(mins % 60).padStart(2, '0')}`;
 }
-
-
 
 async function create(clienteId, data) {
   const { servico_id, empresa_id, hora_inicio, notas } = data;
-  
   const data_agendamento = String(data.data_agendamento).slice(0, 10);
 
-  
   const { disponivel, motivo, slots } = await getSlots(empresa_id, servico_id, data_agendamento);
-  if (!disponivel) throw { statusCode: 409, message: motivo || 'Dia indisponível' };
+  if (!disponivel) throw new AppError(409, motivo || 'Dia indisponível');
 
   const slot = slots.find(s => s.hora_inicio === hora_inicio);
-  if (!slot) throw { statusCode: 409, message: 'Horário não encontrado na grade do serviço' };
-  if (!slot.disponivel) throw { statusCode: 409, message: 'Horário sem vagas disponíveis' };
+  if (!slot) throw new AppError(409, 'Horário não encontrado na grade do serviço');
+  if (!slot.disponivel) throw new AppError(409, 'Horário sem vagas disponíveis');
 
   const servico = await db.queryOne(`SELECT * FROM servico WHERE id=?`, [servico_id]);
   const horaFim = fromMinutes(toMinutes(hora_inicio) + servico.duracao_minutos);
 
-  
   const conflito = await db.queryOne(
     `SELECT id FROM agendamento
      WHERE cliente_id=? AND data_agendamento=? AND status_agendamento NOT IN ('cancelado','concluido')
        AND hora_inicio < ? AND hora_fim > ?`,
-    [clienteId, data_agendamento, horaFim+':00', hora_inicio+':00']
+    [clienteId, data_agendamento, horaFim + ':00', hora_inicio + ':00']
   );
-  if (conflito) throw { statusCode: 409, message: 'Você já tem um agendamento neste horário' };
+  if (conflito) throw new AppError(409, 'Você já tem um agendamento neste horário');
 
-  
   const status = servico.aceitamento_automatico ? 'confirmado' : 'pendente';
 
   const r = await db.execute(
     `INSERT INTO agendamento
       (cliente_id, servico_id, empresa_id, data_agendamento, hora_inicio, hora_fim,
-       status_agendamento, notas, criado_em)
+       status_agendamento, notas, valor, criado_em)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
     [clienteId, servico_id, empresa_id, data_agendamento,
-     hora_inicio+':00', horaFim+':00', status, notas || null, servico.preco_base]
+     hora_inicio + ':00', horaFim + ':00', status, notas || null, servico.preco_base]
   );
 
-  
   if (status === 'confirmado') {
     await enviarNotificacaoAutomatica(empresa_id, clienteId, r.insertId, 'confirmacao');
   }
@@ -161,7 +199,9 @@ async function create(clienteId, data) {
 }
 
 async function listEmpresa(empresaId, filters = {}) {
-  const { status, data_inicio, data_fim, pagina = 1, limite = 20 } = filters;
+  const { status, data_inicio, data_fim } = filters;
+  const pagina = parseInt(filters.pagina) || 1;
+  const limite = parseInt(filters.limite) || 20;
   const where = ['a.empresa_id = ?'];
   const params = [empresaId];
 
@@ -169,8 +209,7 @@ async function listEmpresa(empresaId, filters = {}) {
   if (data_inicio) { where.push('a.data_agendamento >= ?'); params.push(data_inicio); }
   if (data_fim) { where.push('a.data_agendamento <= ?'); params.push(data_fim); }
 
-  const offE = (parseInt(pagina) - 1) * parseInt(limite);
-  const limE = parseInt(limite);
+  const offset = (pagina - 1) * limite;
 
   return db.queryRaw(
     `SELECT a.*, c.nome AS cliente_nome, c.score AS cliente_score,
@@ -180,20 +219,21 @@ async function listEmpresa(empresaId, filters = {}) {
      JOIN servico s ON s.id = a.servico_id
      WHERE ${where.join(' AND ')}
      ORDER BY a.data_agendamento DESC, a.hora_inicio DESC
-     LIMIT ${limE} OFFSET ${offE}`,
+     LIMIT ${limite} OFFSET ${offset}`,
     params
   );
 }
 
 async function listCliente(clienteId, filters = {}) {
-  const { status, pagina = 1, limite = 20 } = filters;
+  const { status } = filters;
+  const pagina = parseInt(filters.pagina) || 1;
+  const limite = parseInt(filters.limite) || 20;
   const where = ['a.cliente_id = ?'];
   const params = [clienteId];
 
   if (status) { where.push('a.status_agendamento = ?'); params.push(status); }
 
-  const offC = (parseInt(pagina) - 1) * parseInt(limite);
-  const limC = parseInt(limite);
+  const offset = (pagina - 1) * limite;
 
   return db.queryRaw(
     `SELECT a.*, s.nome AS servico_nome, e.nome_fantasia AS empresa_nome,
@@ -203,7 +243,7 @@ async function listCliente(clienteId, filters = {}) {
      JOIN empresa e ON e.id = a.empresa_id
      WHERE ${where.join(' AND ')}
      ORDER BY a.data_agendamento DESC, a.hora_inicio DESC
-     LIMIT ${limC} OFFSET ${offC}`,
+     LIMIT ${limite} OFFSET ${offset}`,
     params
   );
 }
@@ -224,8 +264,8 @@ async function getById(id, userId, tipo) {
 
 async function aceitar(empresaId, id) {
   const ag = await db.queryOne(`SELECT * FROM agendamento WHERE id=? AND empresa_id=?`, [id, empresaId]);
-  if (!ag) throw { statusCode: 404, message: 'Agendamento não encontrado' };
-  if (ag.status_agendamento !== 'pendente') throw { statusCode: 400, message: 'Agendamento não está pendente' };
+  if (!ag) throw new AppError(404, 'Agendamento não encontrado');
+  if (ag.status_agendamento !== 'pendente') throw new AppError(400, 'Agendamento não está pendente');
 
   await db.execute(
     `UPDATE agendamento SET status_agendamento='confirmado', aceito_em=NOW() WHERE id=?`,
@@ -237,23 +277,28 @@ async function aceitar(empresaId, id) {
 
 async function recusar(empresaId, id, motivo) {
   const ag = await db.queryOne(`SELECT * FROM agendamento WHERE id=? AND empresa_id=?`, [id, empresaId]);
-  if (!ag) throw { statusCode: 404, message: 'Agendamento não encontrado' };
+  if (!ag) throw new AppError(404, 'Agendamento não encontrado');
+  if (ag.status_agendamento !== 'pendente') throw new AppError(400, 'Agendamento não está pendente');
 
   await db.execute(
     `UPDATE agendamento SET status_agendamento='cancelado', cancelado_em=NOW(), motivo_cancelamento=? WHERE id=?`,
     [motivo || 'Recusado pela empresa', id]
   );
+
+  const filaSvc = require('../fila/fila.service');
+  await filaSvc.notificarProximo(empresaId, ag.servico_id, ag.data_agendamento, ag.hora_inicio);
+
   return db.queryOne(`SELECT * FROM agendamento WHERE id=?`, [id]);
 }
 
+
 async function concluir(empresaId, id) {
   const ag = await db.queryOne(`SELECT * FROM agendamento WHERE id=? AND empresa_id=?`, [id, empresaId]);
-  if (!ag) throw { statusCode: 404, message: 'Agendamento não encontrado' };
-  if (ag.status_agendamento !== 'confirmado') throw { statusCode: 400, message: 'Agendamento não está confirmado' };
+  if (!ag) throw new AppError(404, 'Agendamento não encontrado');
+  if (ag.status_agendamento !== 'confirmado') throw new AppError(400, 'Agendamento não está confirmado');
 
   await db.execute(`UPDATE agendamento SET status_agendamento='concluido' WHERE id=?`, [id]);
 
-  
   await aplicarScore(ag.cliente_id, id, 1.0, 'Compareceu ao agendamento');
   return db.queryOne(`SELECT * FROM agendamento WHERE id=?`, [id]);
 }
@@ -263,10 +308,11 @@ async function cancelarCliente(clienteId, id, motivo) {
     `SELECT a.*, s.empresa_id FROM agendamento a JOIN servico s ON s.id=a.servico_id WHERE a.id=? AND a.cliente_id=?`,
     [id, clienteId]
   );
-  if (!ag) throw { statusCode: 404, message: 'Agendamento não encontrado' };
-  if (['cancelado','concluido'].includes(ag.status_agendamento)) throw { statusCode: 400, message: 'Não é possível cancelar' };
+  if (!ag) throw new AppError(404, 'Agendamento não encontrado');
+  if (['cancelado', 'concluido'].includes(ag.status_agendamento)) throw new AppError(400, 'Não é possível cancelar');
 
-  
+  const cliente = await db.queryOne(`SELECT nome FROM cliente WHERE id=?`, [clienteId]);
+
   const politica = await db.queryOne(
     `SELECT * FROM regra_empresa WHERE empresa_id=? AND tipo='cancelamento' AND ativo=1 LIMIT 1`,
     [ag.empresa_id]
@@ -274,18 +320,17 @@ async function cancelarCliente(clienteId, id, motivo) {
 
   let taxaInfo = null;
   if (politica?.limite_horas) {
-    const agTime   = new Date(`${ag.data_agendamento}T${ag.hora_inicio}`);
-    const agoraMs  = Date.now();
-    const diffHoras = (agTime - agoraMs) / 3_600_000;
+    const agTime = new Date(`${ag.data_agendamento}T${ag.hora_inicio}`);
+    const diffHoras = (agTime - Date.now()) / 3_600_000;
 
     if (diffHoras < politica.limite_horas) {
       const taxa = politica.taxa_percentual
         ? (ag.valor * politica.taxa_percentual) / 100
         : politica.taxa_fixa || 0;
       taxaInfo = { taxa, mensagem: tpl.render(politica.mensagem_template, {
-        nome_cliente: '', taxa,
+        nome_cliente: cliente?.nome || '', taxa,
       })};
-      
+
       await aplicarScore(clienteId, id, -0.5, 'Cancelamento tardio');
     }
   }
@@ -295,48 +340,60 @@ async function cancelarCliente(clienteId, id, motivo) {
     [motivo || null, id]
   );
 
+  const filaSvc = require('../fila/fila.service');
+  await filaSvc.notificarProximo(ag.empresa_id, ag.servico_id, ag.data_agendamento, ag.hora_inicio);
+
   return { agendamento: await db.queryOne(`SELECT * FROM agendamento WHERE id=?`, [id]), taxaInfo };
 }
 
+
 async function reagendar(clienteId, id, data) {
   const ag = await db.queryOne(
-    `SELECT a.*, s.empresa_id FROM agendamento a JOIN servico s ON s.id=a.servico_id WHERE a.id=? AND a.cliente_id=?`,
+    `SELECT a.*, s.empresa_id, s.duracao_minutos, s.aceitamento_automatico
+     FROM agendamento a JOIN servico s ON s.id=a.servico_id
+     WHERE a.id=? AND a.cliente_id=?`,
     [id, clienteId]
   );
-  if (!ag) throw { statusCode: 404, message: 'Agendamento não encontrado' };
-  if (!['confirmado','pendente'].includes(ag.status_agendamento)) throw { statusCode: 400, message: 'Não é possível reagendar este agendamento' };
+  if (!ag) throw new AppError(404, 'Agendamento não encontrado');
+  if (!['confirmado', 'pendente'].includes(ag.status_agendamento)) throw new AppError(400, 'Não é possível reagendar este agendamento');
 
-  
   const politica = await db.queryOne(
     `SELECT * FROM regra_empresa WHERE empresa_id=? AND tipo='reagendamento' AND ativo=1 LIMIT 1`,
     [ag.empresa_id]
   );
   if (politica?.limite_horas) {
-    const agTime  = new Date(`${ag.data_agendamento}T${ag.hora_inicio}`);
+    const agTime = new Date(`${ag.data_agendamento}T${ag.hora_inicio}`);
     const diffHoras = (agTime - Date.now()) / 3_600_000;
     if (diffHoras < politica.limite_horas) {
-      throw { statusCode: 409, message: `Reagendamento não permitido com menos de ${politica.limite_horas}h de antecedência` };
+      throw new AppError(409, `Reagendamento não permitido com menos de ${politica.limite_horas}h de antecedência`);
     }
   }
 
-  
-  const { disponivel, motivo, slots } = await getSlots(ag.empresa_id, ag.servico_id, reagData);
-  if (!disponivel) throw { statusCode: 409, message: motivo || 'Data indisponível' };
-  const slot = slots.find(s => s.hora_inicio === data.hora_inicio);
-  if (!slot?.disponivel) throw { statusCode: 409, message: 'Horário sem vagas' };
-
-  const servico = await db.queryOne(`SELECT duracao_minutos FROM servico WHERE id=?`, [ag.servico_id]);
   const reagData = String(data.data_agendamento).slice(0, 10);
-  const horaFim = fromMinutes(toMinutes(data.hora_inicio) + servico.duracao_minutos);
+  const { disponivel, motivo, slots } = await getSlots(ag.empresa_id, ag.servico_id, reagData);
+  if (!disponivel) throw new AppError(409, motivo || 'Data indisponível');
+  const slot = slots.find(s => s.hora_inicio === data.hora_inicio);
+  if (!slot?.disponivel) throw new AppError(409, 'Horário sem vagas');
 
-  
+  const horaFim = fromMinutes(toMinutes(data.hora_inicio) + ag.duracao_minutos);
+
+  const conflito = await db.queryOne(
+    `SELECT id FROM agendamento
+     WHERE cliente_id=? AND data_agendamento=? AND status_agendamento NOT IN ('cancelado','concluido')
+       AND hora_inicio < ? AND hora_fim > ? AND id != ?`,
+    [clienteId, reagData, horaFim + ':00', data.hora_inicio + ':00', id]
+  );
+  if (conflito) throw new AppError(409, 'Você já tem um agendamento neste horário');
+
+  const novoStatus = ag.aceitamento_automatico ? 'confirmado' : 'pendente';
+
   const r = await db.execute(
     `INSERT INTO agendamento
       (cliente_id, servico_id, empresa_id, data_agendamento, hora_inicio, hora_fim,
-       status_agendamento, notas, criado_em, reagendado_de)
-     VALUES (?, ?, ?, ?, ?, ?, 'confirmado', ?, ?, NOW(), ?)`,
-    [clienteId, ag.servico_id, ag.empresa_id, data.data_agendamento,
-     data.hora_inicio+':00', horaFim+':00', ag.notas, id]
+       status_agendamento, notas, valor, criado_em, reagendado_de)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), ?)`,
+    [clienteId, ag.servico_id, ag.empresa_id, reagData,
+     data.hora_inicio + ':00', horaFim + ':00', novoStatus, ag.notas, ag.valor, id]
   );
 
   await db.execute(
@@ -344,10 +401,12 @@ async function reagendar(clienteId, id, data) {
     [id]
   );
 
+  if (novoStatus === 'confirmado') {
+    await enviarNotificacaoAutomatica(ag.empresa_id, clienteId, r.insertId, 'confirmacao');
+  }
+
   return db.queryOne(`SELECT * FROM agendamento WHERE id=?`, [r.insertId]);
 }
-
-
 
 async function aplicarScore(clienteId, agendamentoId, variacao, motivo) {
   const cliente = await db.queryOne(`SELECT score FROM cliente WHERE id=?`, [clienteId]);
@@ -362,8 +421,6 @@ async function aplicarScore(clienteId, agendamentoId, variacao, motivo) {
   );
 }
 
-
-
 async function enviarNotificacaoAutomatica(empresaId, clienteId, agendamentoId, tipo) {
   try {
     const regra = await db.queryOne(
@@ -373,16 +430,16 @@ async function enviarNotificacaoAutomatica(empresaId, clienteId, agendamentoId, 
     );
     if (!regra?.mensagem_template) return;
 
-    const ag      = await db.queryOne(`SELECT * FROM agendamento WHERE id=?`, [agendamentoId]);
+    const ag = await db.queryOne(`SELECT * FROM agendamento WHERE id=?`, [agendamentoId]);
     const cliente = await db.queryOne(`SELECT nome FROM cliente WHERE id=?`, [clienteId]);
     const servico = await db.queryOne(`SELECT nome FROM servico WHERE id=?`, [ag?.servico_id]);
 
     const msg = tpl.render(regra.mensagem_template, {
       nome_cliente: cliente?.nome,
       nome_empresa: regra.nome_fantasia,
-      data:         ag?.data_agendamento,
-      hora:         ag?.hora_inicio,
-      servico:      servico?.nome,
+      data: ag?.data_agendamento,
+      hora: ag?.hora_inicio,
+      servico: servico?.nome,
     });
 
     await db.execute(

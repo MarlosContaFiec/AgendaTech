@@ -1,5 +1,6 @@
 'use strict';
 const db = require('../../config/database');
+const AppError = require('../../utils/AppError');
 
 async function getPerfil(empresaId) {
   return db.queryOne(
@@ -17,33 +18,52 @@ async function getPerfil(empresaId) {
 }
 
 async function updatePerfil(empresaId, data) {
+  const empresaFields = {
+    nome_fantasia: data.nome_fantasia,
+    razao_social: data.razao_social,
+    telefone: data.telefone,
+    cep: data.cep,
+    endereco: data.endereco,
+    numero: data.numero,
+    complemento: data.complemento,
+    bairro: data.bairro,
+    cidade: data.cidade,
+    estado: data.estado,
+    nicho: data.nicho,
+    sub_nicho: data.sub_nicho,
+    site: data.site,
+    max_agendamentos_global: data.max_agendamentos_global,
+  };
+
+  const profileFields = {
+    descricao: data.descricao,
+    logo_url: data.logo_url,
+    cor_primaria: data.cor_primaria,
+    cor_secundaria: data.cor_secundaria,
+  };
+
+  const setSql = [], setVals = [];
+  for (const [k, v] of Object.entries(empresaFields)) {
+    if (v !== undefined) {
+      setSql.push(`${k} = ?`);
+      setVals.push(v === '' ? null : v);
+    }
+  }
+
+  const profileSets = [], profileVals = [];
+  for (const [k, v] of Object.entries(profileFields)) {
+    if (v !== undefined) {
+      profileSets.push(`${k} = ?`);
+      profileVals.push(v === '' ? null : v);
+    }
+  }
+
+  if (setSql.length === 0 && profileSets.length === 0) {
+    throw new AppError(400, 'Nenhum campo para atualizar');
+  }
+
   const conn = await db.beginTransaction();
   try {
-    
-    const empresaFields = {
-      nome_fantasia:           data.nome_fantasia,
-      razao_social:            data.razao_social,
-      telefone:                data.telefone,
-      cep:                     data.cep,
-      endereco:                data.endereco,
-      numero:                  data.numero,
-      complemento:             data.complemento,
-      bairro:                  data.bairro,
-      cidade:                  data.cidade,
-      estado:                  data.estado,
-      nicho:                   data.nicho,
-      sub_nicho:               data.sub_nicho,
-      site:                    data.site,
-      max_agendamentos_global: data.max_agendamentos_global,
-    };
-
-    const setSql = [], setVals = [];
-    for (const [k, v] of Object.entries(empresaFields)) {
-      if (v !== undefined) {
-        setSql.push(`${k} = ?`);
-        setVals.push(v === '' ? null : v);
-      }
-    }
     if (setSql.length > 0) {
       await conn.execute(
         `UPDATE empresa SET ${setSql.join(', ')} WHERE id = ?`,
@@ -51,24 +71,7 @@ async function updatePerfil(empresaId, data) {
       );
     }
 
-    
-    const profileFields = {
-      descricao:     data.descricao,
-      logo_url:      data.logo_url,
-      cor_primaria:  data.cor_primaria,
-      cor_secundaria: data.cor_secundaria,
-    };
-
-    const profileSets = [], profileVals = [];
-    for (const [k, v] of Object.entries(profileFields)) {
-      if (v !== undefined) {
-        profileSets.push(`${k} = ?`);
-        profileVals.push(v === '' ? null : v);
-      }
-    }
-
     if (profileVals.length > 0) {
-      
       await conn.execute(
         `INSERT INTO empresaProfile (empresa_id)
          VALUES (?)
@@ -82,20 +85,23 @@ async function updatePerfil(empresaId, data) {
   } catch (err) {
     await conn.rollback();
     conn.release();
-    throw err;
+    console.error('Erro ao atualizar perfil da empresa:', err);
+    throw new AppError(500, 'Erro ao atualizar perfil');
   }
+
+  return getPerfil(empresaId);
 }
 
 async function getDashboard(empresaId) {
   const totals = await db.queryOne(
     `SELECT
-        COUNT(DISTINCT a.cliente_id)                                              AS total_clientes,
-        COUNT(*)                                                                   AS total_agendamentos,
-        SUM(a.status_agendamento = 'concluido')                                   AS concluidos,
-        SUM(a.status_agendamento = 'cancelado')                                   AS cancelados,
-        SUM(a.status_agendamento = 'pendente')                                    AS pendentes,
-        ROUND(AVG(CASE WHEN av.estrelas IS NOT NULL THEN av.estrelas END), 2)     AS media_avaliacao,
-        COALESCE(SUM(CASE WHEN a.status_agendamento='concluido' END), 0) AS receita_total
+        COUNT(DISTINCT a.cliente_id) AS total_clientes,
+        COUNT(*) AS total_agendamentos,
+        SUM(a.status_agendamento = 'concluido') AS concluidos,
+        SUM(a.status_agendamento = 'cancelado') AS cancelados,
+        SUM(a.status_agendamento = 'pendente') AS pendentes,
+        ROUND(AVG(CASE WHEN av.estrelas IS NOT NULL THEN av.estrelas END), 2) AS media_avaliacao,
+        COALESCE(SUM(CASE WHEN a.status_agendamento = 'concluido' THEN a.valor ELSE 0 END), 0) AS receita_total
      FROM agendamento a
      LEFT JOIN avaliacao av ON av.agendamento_id = a.id
      WHERE a.empresa_id = ?`,
@@ -138,6 +144,9 @@ async function getCapacidades(empresaId) {
 
 async function upsertCapacidade(empresaId, data) {
   const { hora_inicio, hora_fim, max_agendamentos } = data;
+  if (!hora_inicio || !hora_fim) throw new AppError(400, 'hora_inicio e hora_fim são obrigatórios');
+  if (max_agendamentos == null || max_agendamentos < 1) throw new AppError(400, 'max_agendamentos deve ser >= 1');
+
   return db.execute(
     `INSERT INTO capacidade_horario (empresa_id, hora_inicio, hora_fim, max_agendamentos)
      VALUES (?, ?, ?, ?)
@@ -147,10 +156,11 @@ async function upsertCapacidade(empresaId, data) {
 }
 
 async function deleteCapacidade(empresaId, id) {
-  return db.execute(
+  const r = await db.execute(
     `DELETE FROM capacidade_horario WHERE id = ? AND empresa_id = ?`,
     [id, empresaId]
   );
+  if (r.affectedRows === 0) throw new AppError(404, 'Capacidade não encontrada');
 }
 
 module.exports = { getPerfil, updatePerfil, getDashboard, getCapacidades, upsertCapacidade, deleteCapacidade };

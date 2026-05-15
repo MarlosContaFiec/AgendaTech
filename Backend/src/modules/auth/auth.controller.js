@@ -38,5 +38,19 @@ async function me(req, res, next) {
     res_.ok(res, data);
   } catch (err) { next(err); }
 }
+async function verificarEmail(req, res, next) {
+  try {
+    const result = await svc.verificarEmail(req.params.token);
+    res_.ok(res, result, result.message);
+  } catch (e) { next(e); }
+}
 
-module.exports = { registerCliente, registerEmpresa, login, refresh, me };
+async function reenviarVerificacao(req, res, next) {
+  try {
+    const result = await svc.reenviarVerificacao(req.body.email);
+    res_.ok(res, result, result.message);
+  } catch (e) { next(e); }
+}
+
+
+module.exports = { registerCliente, registerEmpresa, login, refresh, me, verificarEmail, reenviarVerificacao };

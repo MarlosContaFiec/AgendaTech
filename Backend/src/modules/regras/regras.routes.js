@@ -1,13 +1,11 @@
 'use strict';
-const db     = require('../../config/database');
-const cal    = require('../../utils/calendarEngine');
-const res_   = require('../../utils/response');
+const db = require('../../config/database');
+const AppError = require('../../utils/AppError');
+const cal = require('../../utils/calendarEngine');
+const res_ = require('../../utils/response');
 const router = require('express').Router();
-const { requireEmpresa }    = require('../../middlewares/auth');
+const { requireEmpresa } = require('../../middlewares/auth');
 const { validate, validateQuery, schemas } = require('../../middlewares/validate');
-const Joi = require('joi');
-
-
 
 async function list(empresaId) {
   return db.query(
@@ -35,19 +33,21 @@ async function create(empresaId, data) {
 }
 
 async function update(empresaId, id, data) {
-  const allowed = ['tag_id','tipo','dia_semana','qnd_ocorre','mes',
-                   'unico_dia','unico_mes','unico_ano','unico_repete_anual','prioridade','ativo'];
+  const allowed = ['tag_id', 'tipo', 'dia_semana', 'qnd_ocorre', 'mes',
+    'unico_dia', 'unico_mes', 'unico_ano', 'unico_repete_anual', 'prioridade', 'ativo'];
   const sets = [], vals = [];
   for (const k of allowed) {
     if (data[k] !== undefined) { sets.push(`${k} = ?`); vals.push(data[k]); }
   }
-  if (!sets.length) throw { statusCode: 400, message: 'Nenhum campo para atualizar' };
-  await db.execute(`UPDATE regras SET ${sets.join(', ')} WHERE id = ? AND empresa_id = ?`, [...vals, id, empresaId]);
+  if (!sets.length) throw new AppError(400, 'Nenhum campo para atualizar');
+  const r = await db.execute(`UPDATE regras SET ${sets.join(', ')} WHERE id = ? AND empresa_id = ?`, [...vals, id, empresaId]);
+  if (r.affectedRows === 0) throw new AppError(404, 'Regra não encontrada');
   return db.queryOne(`SELECT r.*, t.nome AS tag_nome, t.label, t.cor FROM regras r JOIN tags t ON t.id=r.tag_id WHERE r.id=?`, [id]);
 }
 
 async function remove(empresaId, id) {
-  return db.execute(`DELETE FROM regras WHERE id = ? AND empresa_id = ?`, [id, empresaId]);
+  const r = await db.execute(`DELETE FROM regras WHERE id = ? AND empresa_id = ?`, [id, empresaId]);
+  if (r.affectedRows === 0) throw new AppError(404, 'Regra não encontrada');
 }
 
 async function getCalendario(empresaId, ano, mes) {
@@ -57,8 +57,6 @@ async function getCalendario(empresaId, ano, mes) {
 async function getDia(empresaId, date) {
   return cal.isDayOpen(empresaId, date);
 }
-
-
 
 async function ctrlList(req, res, next) {
   try { res_.ok(res, await list(req.user.id)); } catch (e) { next(e); }
@@ -87,13 +85,11 @@ async function ctrlDia(req, res, next) {
   } catch (e) { next(e); }
 }
 
-
-
-router.get('/',            requireEmpresa, ctrlList);
-router.post('/',           requireEmpresa, validate(schemas.createRegra), ctrlCreate);
-router.put('/:id',         requireEmpresa, validate(schemas.createRegra), ctrlUpdate);
-router.delete('/:id',      requireEmpresa, ctrlRemove);
-router.get('/calendario',  requireEmpresa, ctrlCalendario);
-router.get('/dia',         requireEmpresa, ctrlDia);
+router.get('/', requireEmpresa, ctrlList);
+router.post('/', requireEmpresa, validate(schemas.createRegra), ctrlCreate);
+router.put('/:id', requireEmpresa, validate(schemas.updateRegra), ctrlUpdate);
+router.delete('/:id', requireEmpresa, ctrlRemove);
+router.get('/calendario', requireEmpresa, ctrlCalendario);
+router.get('/dia', requireEmpresa, ctrlDia);
 
 module.exports = router;

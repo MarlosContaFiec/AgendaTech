@@ -32,6 +32,7 @@ function splitStatements(sql) {
   return sql
     .replace(/\r/g, '')
     .split(/;\s*\n/)
+    .map(s => s.replace(/;\s*$/, ''))
     .map(s =>
       s
         .split('\n')
@@ -41,6 +42,7 @@ function splitStatements(sql) {
     )
     .filter(Boolean);
 }
+
 
 
 const IGNORABLE = new Set([1060, 1061, 1062, 1826, 1050, 1007]);
@@ -72,7 +74,7 @@ async function run() {
       .sort();
 
     for (const file of files) {
-      if (!withSeed && file.startsWith('003')) {
+      if (!withSeed && file.startsWith('seed')) {
         console.log(`⏭  Pulando (use --seed para incluir): ${file}`);
         continue;
       }

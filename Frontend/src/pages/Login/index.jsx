@@ -919,7 +919,7 @@ export default function TrustBookAuth({ onLoginSucesso }) {
 
   function aoLoginOk(tipo) {
     if (onLoginSucesso) onLoginSucesso(tipo);
-    else window.location.href = tipo==="empresa" ? "/empresa" : "/cliente";
+    else window.location.href = tipo==="empresa" ? "/Empresa" : "/cliente";
   }
 
   return (
