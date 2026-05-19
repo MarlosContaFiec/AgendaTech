@@ -1,11 +1,14 @@
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate, useLocation } from "react-router-dom";
-import { FiSearch, FiCalendar, FiBell, FiUser, FiGrid, FiScissors, FiMail, FiBriefcase, FiLogOut } from "react-icons/fi";
+import { FiSearch, FiCalendar, FiBell, FiUser, FiGrid, FiScissors, FiMail, FiBriefcase, FiLogOut, FiList, FiClock, FiSettings, FiFileText, FiUsers } from "react-icons/fi";
 import Logo from "@/components/shared/Logo";
 
 const NAV_CLIENTE = [
   { id: "explorar", label: "Explorar", icon: FiSearch },
-  { id: "agendamentos", label: "Agendamentos", icon: FiCalendar },
+  { id: "agendamentos", label: "Agendamentos", icon: FiList },
+  { id: "calendario", label: "Calendário", icon: FiCalendar },
+  { id: "dependentes", label: "Dependentes", icon: FiUsers },
+  { id: "documentos", label: "Documentos", icon: FiFileText },
   { id: "notificacoes", label: "Notificações", icon: FiBell },
   { id: "perfil", label: "Meu Perfil", icon: FiUser },
 ];
@@ -13,9 +16,11 @@ const NAV_CLIENTE = [
 const NAV_EMPRESA = [
   { id: "dashboard", label: "Visão Geral", icon: FiGrid },
   { id: "servicos", label: "Serviços", icon: FiScissors },
-  { id: "agendamentos", label: "Agendamentos", icon: FiCalendar },
-  { id: "solicitacoes", label: "Solicitações", icon: FiBell },
+  { id: "agendamentos", label: "Agendamentos", icon: FiList },
+  { id: "calendario", label: "Calendário", icon: FiCalendar },
+  { id: "solicitacoes", label: "Solicitações", icon: FiClock },
   { id: "notificacoes", label: "Notificações", icon: FiMail },
+  { id: "configuracoes", label: "Configurações", icon: FiSettings },
   { id: "perfil", label: "Perfil", icon: FiBriefcase },
 ];
 
@@ -34,22 +39,24 @@ export default function AppLayout({ children, badges = {} }) {
           <Logo />
         </div>
         <div className="px-4 pb-2 text-[0.6rem] text-muted uppercase tracking-widest">Menu</div>
-        {nav.map(item => {
-          const Icon = item.icon;
-          const ativo = aba === item.id;
-          return (
-            <div key={item.id} onClick={() => navigate(`/dashboard/${item.id}`)}
-              className={"px-4 py-2.5 flex items-center gap-2.5 cursor-pointer text-[0.87rem] transition-all border-l-[3px] " +
-                (ativo ? "text-purple bg-purple/10 border-purple" : "text-muted border-transparent hover:text-muted-light hover:bg-surface-alt")}>
-              <Icon size={18} className={ativo ? "text-purple" : ""} />
-              <span className="flex-1">{item.label}</span>
-              {badges[item.id] > 0 && (
-                <span className={"text-[0.62rem] font-bold px-2 py-[1px] rounded-badge " + (ativo ? "bg-purple text-white" : "bg-surface-hover text-muted")}>{badges[item.id]}</span>
-              )}
-            </div>
-          );
-        })}
-        <div className="mt-auto p-4 border-t border-line">
+        <div className="flex-1 overflow-y-auto">
+          {nav.map(item => {
+            const Icon = item.icon;
+            const ativo = aba === item.id;
+            return (
+              <div key={item.id} onClick={() => navigate(`/dashboard/${item.id}`)}
+                className={"px-4 py-2.5 flex items-center gap-2.5 cursor-pointer text-[0.87rem] transition-all border-l-[3px] " +
+                  (ativo ? "text-purple bg-purple/10 border-purple" : "text-muted border-transparent hover:text-muted-light hover:bg-surface-alt")}>
+                <Icon size={18} className={ativo ? "text-purple" : ""} />
+                <span className="flex-1">{item.label}</span>
+                {badges[item.id] > 0 && (
+                  <span className={"text-[0.62rem] font-bold px-2 py-[1px] rounded-badge " + (ativo ? "bg-purple text-white" : "bg-surface-hover text-muted")}>{badges[item.id]}</span>
+                )}
+              </div>
+            );
+          })}
+        </div>
+        <div className="p-4 border-t border-line">
           <div className="text-[0.72rem] text-muted mb-2 truncate px-1">{user?.nome || user?.nome_fantasia || user?.email || ""}</div>
           <button onClick={logout} className="w-full py-2.5 rounded-btn bg-surface-alt text-muted text-[0.82rem] font-semibold cursor-pointer border border-line hover:border-danger/50 hover:text-danger transition-all flex items-center justify-center gap-2">
             <FiLogOut size={15} />

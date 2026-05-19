@@ -1,13 +1,14 @@
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
-import { Button, Select } from "@/components/ui";
+import { useAuth } from "@/contexts/AuthContext";
+import { Button, Input, Spinner, Toast } from "@/components/ui";
 import { formatDate, formatMoney, formatHora } from "@/utils/formatters";
-import { getAccessToken } from "@/services/auth";
 import api from "@/services/api";
+import { FiCalendar, FiClock, FiStar, FiUser } from "react-icons/fi";
 
-export default function PerfilEmpresaPublico({ showToast }) {
+export default function PerfilEmpresaPublico() {
   const { id } = useParams();
-  const token = getAccessToken();
+  const { user } = useAuth();
   const [empresa, setEmpresa] = useState(null);
   const [servicos, setServicos] = useState([]);
   const [servicoSel, setServicoSel] = useState("");
@@ -15,6 +16,11 @@ export default function PerfilEmpresaPublico({ showToast }) {
   const [slots, setSlots] = useState(null);
   const [loading, setLoading] = useState(true);
   const [agendando, setAgendando] = useState(false);
+  const [toast, setToast] = useState({ msg: "", type: "success" });
+
+  function showToast(msg, type = "success") {
+    setToast({ msg, type });
+  }
 
   useEffect(() => {
     api("GET", "/api/empresas/" + id).then(res => {
@@ -43,7 +49,7 @@ export default function PerfilEmpresaPublico({ showToast }) {
       empresa_id: Number(id),
       data_agendamento: dataSel,
       hora_inicio: hora,
-    }, token);
+    }, user.token);
     setAgendando(false);
     if (res.success) {
       showToast("Agendamento realizado!");
@@ -53,26 +59,32 @@ export default function PerfilEmpresaPublico({ showToast }) {
     }
   }
 
-  if (loading) return <div className="text-center py-10 text-muted">Carregando...</div>;
+  if (loading) return <div className="flex justify-center py-10"><Spinner size={24} /></div>;
   if (!empresa) return <div className="text-center py-10 text-muted">Empresa não encontrada.</div>;
 
   return (
     <div className="max-w-[900px]">
-      {/* Header */}
+      <Toast msg={toast.msg} type={toast.type} onDone={() => setToast({ msg: "" })} />
+
       <div className="bg-surface border border-line rounded-card p-6 mb-6">
         <div className="flex items-center gap-4">
-          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-purple to-neon flex items-center justify-center text-white font-black text-2xl shadow-[0_0_12px_rgba(108,92,231,0.5)]">
-            {empresa.logo_url ? <img src={empresa.logo_url} alt="" className="w-full h-full object-cover rounded-2xl" /> : (empresa.nome_fantasia?.[0] || "?")}
+          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-purple to-neon flex items-center justify-center text-white font-black text-2xl shadow-[0_0_12px_rgba(108,92,231,0.5)] overflow-hidden">
+            {empresa.logo_url
+              ? <img src={empresa.logo_url} alt="" className="w-full h-full object-cover rounded-2xl" />
+              : (empresa.nome_fantasia?.[0] || "?")}
           </div>
           <div>
             <h2 className="font-heading font-black text-xl">{empresa.nome_fantasia}</h2>
             <p className="text-muted text-[0.85rem]">{empresa.nicho}{empresa.sub_nicho ? " · " + empresa.sub_nicho : ""} · {empresa.cidade}, {empresa.estado}</p>
-            {empresa.media_avaliacao > 0 && <p className="text-gold text-[0.82rem] mt-1">⭐ {empresa.media_avaliacao} ({empresa.total_avaliacoes} avaliações)</p>}
+            {empresa.media_avaliacao > 0 && (
+              <p className="text-gold text-[0.82rem] mt-1 flex items-center gap-1">
+                <FiStar size={13} /> {empresa.media_avaliacao} ({empresa.total_avaliacoes} avaliações)
+              </p>
+            )}
           </div>
         </div>
       </div>
 
-      {/* Serviços */}
       <div className="bg-surface border border-line rounded-card p-6 mb-6">
         <h3 className="font-heading font-bold text-lg mb-4">Serviços Disponíveis</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -85,20 +97,20 @@ export default function PerfilEmpresaPublico({ showToast }) {
                 <span className="text-purple font-bold text-[0.85rem]">{formatMoney(s.preco_base)}</span>
               </div>
               <p className="text-[0.78rem] text-muted mb-1">{s.descricao}</p>
-              <div className="text-[0.72rem] text-muted">🕐 {s.duracao_minutos}min · {formatHora(s.hora_inicio)} — {formatHora(s.hora_fim)}</div>
+              <div className="flex items-center gap-2 text-[0.72rem] text-muted">
+                <span className="flex items-center gap-1"><FiClock size={11} />{s.duracao_minutos}min</span>
+                <span>{formatHora(s.hora_inicio)} — {formatHora(s.hora_fim)}</span>
+              </div>
             </div>
           ))}
         </div>
       </div>
 
-      {/* Selecionar data + slots */}
       <div className="bg-surface border border-line rounded-card p-6">
-        <h3 className="font-heading font-bold text-lg mb-4">Agendar</h3>
-        <div className="mb-4">
-          <label className="block text-[0.7rem] font-bold uppercase tracking-wider mb-1.5 text-muted">Data</label>
-          <input type="date" value={dataSel} onChange={e => setDataSel(e.target.value)}
-            className="bg-surface-alt border border-line-light rounded-input text-foreground text-[0.88rem] outline-none font-body py-3 px-3.5" />
-        </div>
+        <h3 className="font-heading font-bold text-lg mb-4 flex items-center gap-2">
+          <FiCalendar size={18} /> Agendar
+        </h3>
+        <Input label="Data" type="date" value={dataSel} onChange={e => setDataSel(e.target.value)} icon={<FiCalendar size={16} />} className="mb-4" />
 
         {slots && (
           <div>

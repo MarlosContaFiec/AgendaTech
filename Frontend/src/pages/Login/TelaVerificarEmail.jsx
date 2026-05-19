@@ -3,8 +3,9 @@ import { Button } from "@/components/ui";
 import Logo from "@/components/shared/Logo";
 import StepIndicator from "@/components/shared/StepIndicator";
 import api from "@/services/api";
+import { FiMail, FiSend } from "react-icons/fi";
 
-export default function TelaVerificarEmail({ email, tipo, onVoltar }) {
+export default function TelaVerificarEmail({ email, onVoltar }) {
   const [reenviando, setReenviando] = useState(false);
   const [msg, setMsg] = useState("");
 
@@ -20,7 +21,9 @@ export default function TelaVerificarEmail({ email, tipo, onVoltar }) {
       <div className="mb-5"><Logo /></div>
       <StepIndicator etapas={["Dados", "Verificação", "Pronto"]} atual={1} />
       <div className="text-center mb-5">
-        <div className="w-16 h-16 rounded-[18px] bg-purple/18 border border-purple/35 inline-flex items-center justify-center text-[1.9rem] mb-4 animate-[bounceIn_.4s_ease]">✉️</div>
+        <div className="w-16 h-16 rounded-[18px] bg-purple/18 border border-purple/35 inline-flex items-center justify-center mb-4 animate-[bounceIn_.4s_ease]">
+          <FiMail size={28} className="text-purple" />
+        </div>
         <h2 className="font-heading font-black text-[1.2rem] tracking-tight mb-2">Verifique seu e-mail</h2>
         <p className="text-[0.82rem] text-muted-light leading-relaxed">Enviamos um link de confirmação para<br /><strong className="text-purple">{email}</strong></p>
       </div>
@@ -30,9 +33,13 @@ export default function TelaVerificarEmail({ email, tipo, onVoltar }) {
       </div>
       {msg && <div className="bg-success/10 border border-success/25 rounded-lg py-2.5 px-3.5 text-[0.82rem] text-success mb-4">{msg}</div>}
       <div className="flex flex-col gap-3">
-        <Button variant="ghost" disabled={reenviando} onClick={reenviar} className="w-full">{reenviando ? "Reenviando..." : "📨 Reenviar e-mail de verificação"}</Button>
+        <Button variant="ghost" disabled={reenviando} onClick={reenviar} className="w-full">
+          {reenviando ? "Reenviando..." : <><FiSend size={14} /> Reenviar e-mail de verificação</>}
+        </Button>
       </div>
-      <div className="mt-4"><button onClick={onVoltar} className="bg-none border-none cursor-pointer text-muted text-[0.82rem] font-medium hover:text-purple transition-colors">← Voltar ao login</button></div>
+      <div className="mt-4">
+        <button onClick={onVoltar} className="bg-none border-none cursor-pointer text-muted text-[0.82rem] font-medium hover:text-purple transition-colors">← Voltar ao login</button>
+      </div>
     </div>
   );
 }

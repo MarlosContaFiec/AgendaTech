@@ -1,15 +1,23 @@
 import { useState, useEffect } from "react";
-import { Button, Input, Select, Textarea } from "@/components/ui";
+import { useAuth } from "@/contexts/AuthContext";
+import { Button, Input, Textarea, Spinner, Toast } from "@/components/ui";
 import { formatMoney } from "@/utils/formatters";
 import api from "@/services/api";
+import { FiPlus, FiSave, FiX, FiEdit2, FiTrash2, FiClock, FiZap, FiSearch } from "react-icons/fi";
 
-export default function Servicos({ token, showToast }) {
+export default function Servicos() {
+  const { user } = useAuth();
   const [servicos, setServicos] = useState([]);
   const [editando, setEditando] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [toast, setToast] = useState({ msg: "", type: "success" });
+
+  function showToast(msg, type = "success") {
+    setToast({ msg, type });
+  }
 
   async function carregar() {
-    const res = await api("GET", "/api/servicos", null, token);
+    const res = await api("GET", "/api/servicos", null, user.token);
     if (res.success) setServicos(res.data || []);
     setLoading(false);
   }
@@ -31,28 +39,30 @@ export default function Servicos({ token, showToast }) {
       aceitamento_automatico: s.aceitamento_automatico, max_por_horario: s.max_por_horario ? Number(s.max_por_horario) : null,
       hora_inicio: s.hora_inicio, hora_fim: s.hora_fim, intervalo_minutos: Number(s.intervalo_minutos) || 0,
     };
-    const res = s.id ? await api("PUT", "/api/servicos/" + s.id, body, token) : await api("POST", "/api/servicos", body, token);
+    const res = s.id ? await api("PUT", "/api/servicos/" + s.id, body, user.token) : await api("POST", "/api/servicos", body, user.token);
     if (res.success) { showToast(s.id ? "Serviço atualizado!" : "Serviço criado!"); setEditando(null); carregar(); }
     else showToast(res.message || "Erro ao salvar.", "error");
   }
 
   async function excluir(id) {
     if (!confirm("Desativar este serviço?")) return;
-    const res = await api("DELETE", "/api/servicos/" + id, null, token);
+    const res = await api("DELETE", "/api/servicos/" + id, null, user.token);
     if (res.success) { showToast("Serviço desativado."); carregar(); }
     else showToast(res.message || "Erro.", "error");
   }
 
-  if (loading) return <div className="text-center py-10 text-muted">Carregando...</div>;
+  if (loading) return <div className="flex justify-center py-10"><Spinner size={24} /></div>;
 
   return (
     <div>
+      <Toast msg={toast.msg} type={toast.type} onDone={() => setToast({ msg: "" })} />
+
       <div className="flex justify-between items-center mb-6">
         <div>
           <h2 className="font-heading font-black text-xl mb-1">Serviços</h2>
           <p className="text-muted text-[0.85rem]">Gerencie os serviços da sua empresa</p>
         </div>
-        <Button onClick={novoServico}>＋ Novo Serviço</Button>
+        <Button onClick={novoServico}><FiPlus size={15} /> Novo Serviço</Button>
       </div>
 
       {editando && (
@@ -74,31 +84,42 @@ export default function Servicos({ token, showToast }) {
             </label>
           </div>
           <div className="flex gap-3">
-            <Button onClick={salvar}>💾 Salvar</Button>
-            <Button variant="ghost" onClick={() => setEditando(null)}>Cancelar</Button>
+            <Button onClick={salvar}><FiSave size={14} /> Salvar</Button>
+            <Button variant="ghost" onClick={() => setEditando(null)}><FiX size={14} /> Cancelar</Button>
           </div>
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {servicos.map(s => (
-          <div key={s.id} className="bg-surface border border-line rounded-card p-4">
-            <div className="flex justify-between items-start mb-2">
-              <div className="font-bold text-[0.95rem]">{s.nome}</div>
-              <span className="text-[0.72rem] text-muted">{s.duracao_minutos}min</span>
+      {servicos.length === 0 ? (
+        <div className="text-center py-16 bg-surface border border-line rounded-card">
+          <p className="text-muted text-[0.9rem]">Nenhum serviço cadastrado.</p>
+          <p className="text-muted text-[0.78rem] mt-1">Clique em "Novo Serviço" para começar.</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {servicos.map(s => (
+            <div key={s.id} className="bg-surface border border-line rounded-card p-4">
+              <div className="flex justify-between items-start mb-2">
+                <div className="font-bold text-[0.95rem]">{s.nome}</div>
+                <span className="text-[0.72rem] text-muted flex items-center gap-1"><FiClock size={11} />{s.duracao_minutos}min</span>
+              </div>
+              <div className="text-[0.82rem] font-bold text-purple mb-1">{formatMoney(s.preco_base)}</div>
+              <div className="text-[0.75rem] text-muted mb-3 line-clamp-2">{s.descricao || "Sem descrição"}</div>
+              <div className="flex items-center gap-2 text-[0.68rem] text-muted mb-3">
+                <FiClock size={11} />{s.hora_inicio?.slice(0, 5)} — {s.hora_fim?.slice(0, 5)}
+                <span>·</span>
+                {s.aceitamento_automatico
+                  ? <span className="flex items-center gap-1"><FiZap size={11} />Auto</span>
+                  : <span className="flex items-center gap-1"><FiSearch size={11} />Manual</span>}
+              </div>
+              <div className="flex gap-2">
+                <Button variant="ghost" size="sm" className="flex-1" onClick={() => editarServico(s)}><FiEdit2 size={13} /> Editar</Button>
+                <Button variant="danger" size="sm" onClick={() => excluir(s.id)}><FiTrash2 size={13} /></Button>
+              </div>
             </div>
-            <div className="text-[0.82rem] font-bold text-purple mb-1">{formatMoney(s.preco_base)}</div>
-            <div className="text-[0.75rem] text-muted mb-3 line-clamp-2">{s.descricao || "Sem descrição"}</div>
-            <div className="text-[0.68rem] text-muted mb-3">
-              🕐 {s.hora_inicio?.slice(0,5)} — {s.hora_fim?.slice(0,5)} · {s.aceitamento_automatico ? "⚡ Auto" : "🔍 Manual"}
-            </div>
-            <div className="flex gap-2">
-              <Button variant="ghost" size="sm" className="flex-1" onClick={() => editarServico(s)}>✏️ Editar</Button>
-              <Button variant="danger" size="sm" onClick={() => excluir(s.id)}>🗑</Button>
-            </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

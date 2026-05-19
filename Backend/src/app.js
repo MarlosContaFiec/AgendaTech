@@ -80,6 +80,7 @@ app.use('/api/fila', require('./modules/fila/fila.routes'));
 app.use('/api/tags',          require('./modules/tags/tags.routes'));
 app.use('/api/regras',        require('./modules/regras/regras.routes'));
 app.use('/api/documentos', require('./modules/documento/documento.routes'));
+app.use('/api/notificacoes', require('./modules/notificacao/notificacao.routes'));
 app.use('/api/solicitacoes', require('./modules/solicitacao/solicitacao.routes'));
 app.use('/api/cliente/dependentes', require('./modules/dependente/dependente.routes'));
 app.use('/api/regras-negocio',require('./modules/regras_negocio/regras_negocio.routes'));

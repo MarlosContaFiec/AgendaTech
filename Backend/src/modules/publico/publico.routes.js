@@ -122,8 +122,21 @@ async function getNichos() {
   );
 }
 
+async function getCidades() {
+  return db.query(
+    `SELECT cidade, estado, COUNT(*) as total
+     FROM empresa
+     JOIN usuario u ON u.id = empresa.id AND u.ativo = 1
+     WHERE cidade IS NOT NULL AND cidade != ''
+     GROUP BY cidade, estado
+     ORDER BY total DESC`
+  );
+}
 
 
+router.get('/empresas/cidades', async (_req, res, next) => {
+  try { res_.ok(res, await getCidades()); } catch (e) { next(e); }
+});
 
 router.get('/empresas/destaques', async (_req, res, next) => {
   try { res_.ok(res, await getDestaquesUltimas24h()); } catch (e) { next(e); }
@@ -133,11 +146,9 @@ router.get('/empresas/nichos', async (_req, res, next) => {
   try { res_.ok(res, await getNichos()); } catch (e) { next(e); }
 });
 
-
 router.get('/empresas', validateQuery(schemas.filtroEmpresas), async (req, res, next) => {
   try { res_.ok(res, await listarEmpresas(req.query)); } catch (e) { next(e); }
 });
-
 
 router.get('/empresas/:id', async (req, res, next) => {
   try {

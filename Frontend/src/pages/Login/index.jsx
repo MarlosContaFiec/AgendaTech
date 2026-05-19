@@ -31,7 +31,7 @@ export default function Login() {
       {tela === "escolha" && <TelaEscolhaTipo onEscolher={t => setTela("cadastro_" + t)} onVoltar={() => setTela("login")} />}
       {tela === "cadastro_cliente" && <TelaCadastro tipo="cliente" onConcluir={aoConcluirCadastro} onVoltar={() => setTela("escolha")} />}
       {tela === "cadastro_empresa" && <TelaCadastro tipo="empresa" onConcluir={aoConcluirCadastro} onVoltar={() => setTela("escolha")} />}
-      {tela === "verificar" && <TelaVerificarEmail email={emailP} tipo={tipoP} onVoltar={() => setTela("login")} />}
+      {tela === "verificar" && <TelaVerificarEmail email={emailP} onVoltar={() => setTela("login")} />}
       {tela === "sucesso" && <TelaSucesso tipo={tipoP} onIrLogin={() => setTela("login")} />}
     </AuthLayout>
   );
