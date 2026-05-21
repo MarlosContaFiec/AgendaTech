@@ -1,10 +1,10 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Spinner } from "@/components/ui";
-import { scoreColor } from "@/utils/calculators";
+// import { scoreColor } from "@/utils/calculators";
 import { formatDate, formatHora } from "@/utils/formatters";
 import api from "@/services/api";
-import { FiUsers, FiCalendar, FiCheckCircle, FiBell, FiXCircle, FiDollar, FiStar } from "react-icons/fi";
+import { FiUsers, FiCalendar, FiCheckCircle, FiBell, FiXCircle, FiDollarSign, FiStar } from "react-icons/fi";
 
 export default function VisaoGeral() {
   const { user } = useAuth();
@@ -24,7 +24,7 @@ export default function VisaoGeral() {
     { label: "Concluídos", value: dash.concluidos, Icon: FiCheckCircle, color: "text-success" },
     { label: "Pendentes", value: dash.pendentes, Icon: FiBell, color: "text-warning" },
     { label: "Cancelados", value: dash.cancelados, Icon: FiXCircle, color: "text-danger" },
-    { label: "Receita", value: "R$ " + (dash.receita_total || 0).toFixed(2), Icon: FiDollar, color: "text-gold" },
+    { label: "Receita", value: "R$ " + (dash.receita_total || 0).toFixed(2), Icon: FiDollarSign, color: "text-gold" },
   ];
 
   return (

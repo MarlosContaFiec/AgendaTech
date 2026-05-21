@@ -9,16 +9,6 @@ const email = require('../../utils/email');
 const cpf_ = require('../../utils/cpf');
 const cnpj_ = require('../../utils/cnpj');
 
-
-
-class AppError extends Error {
-  constructor(statusCode, message) {
-    super(message);
-    this.statusCode = statusCode;
-  }
-}
-
-
 if (!env.jwt.secret || !env.jwt.refreshSecret) {
   throw new Error('JWT secrets não configurados no .env');
 }
