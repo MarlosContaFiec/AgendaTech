@@ -1,7 +1,8 @@
 import { apiCall } from './api';
 
-export async function apiLogin(cpfCnpj, senha) {
-  return apiCall('POST', '/api/auth/login', { cpf_cnpj: cpfCnpj, senha });
+export async function apiLogin(documento, senha) {
+  const documentoLimpo = documento.replace(/\D/g, '');
+  return apiCall('POST', '/api/auth/login', { documento: documentoLimpo, senha });
 }
 
 export async function apiRegisterCliente(dados) {
@@ -12,10 +13,14 @@ export async function apiRegisterEmpresa(dados) {
   return apiCall('POST', '/api/auth/register/empresa', dados);
 }
 
-export async function apiVerificarEmail(email, codigo, tipo) {
-  return apiCall('POST', '/api/auth/verificar-email', { email, codigo, tipo });
+export async function apiGetMe() {
+  return apiCall('GET', '/api/auth/me');
 }
 
-export async function apiReenviarCodigo(email, tipo) {
-  return apiCall('POST', '/api/auth/reenviar-codigo', { email, tipo });
+export async function apiVerificarEmail(token) {
+  return apiCall('GET', `/api/auth/verificar/${token}`);
+}
+
+export async function apiReenviarVerificacao(email) {
+  return apiCall('POST', '/api/auth/reenviar-verificacao', { email });
 }

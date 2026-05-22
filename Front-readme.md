@@ -55,6 +55,18 @@ Authorization: Bearer <access_token>
 
 O token dura **15 minutos**. Quando uma rota retornar `401`, renove com `POST /api/auth/refresh`.
 
+O payload do token contém:
+
+```json
+{
+  "sub": 5,
+  "tipo": "cliente",
+  "documento": "11144477735",
+  "iat": 1717000000,
+  "exp": 1717000900
+}
+```
+
 ---
 
 ### Paginação
@@ -116,7 +128,7 @@ Request:
   "nome": "João Silva",
   "email": "joao@email.com",
   "senha": "minhasenha123",
-  "cpf": "111.444.777-35",
+  "cpf": "11144477735",
   "telefone": "(19) 98888-0001",
   "data_nascimento": "1995-03-15"
 }
@@ -127,7 +139,7 @@ Request:
 | nome | Sim | Nome completo (nome + sobrenome) |
 | email | Sim | Formato válido, único no sistema |
 | senha | Sim | Mínimo 6 caracteres |
-| cpf | Não | Formato `000.000.000-00` ou 11 dígitos. Valida dígitos verificadores |
+| cpf | Não | 11 dígitos (com ou sem pontuação). Valida dígitos verificadores |
 | telefone | Não | Máximo 15 caracteres |
 | data_nascimento | Não | Formato `YYYY-MM-DD` |
 
@@ -162,7 +174,7 @@ Request:
 {
   "email": "barbearia@email.com",
   "senha": "minhasenha123",
-  "cnpj": "11.222.333/0001-81",
+  "cnpj": "11222333000181",
   "razao_social": "Barbearia LTDA",
   "nome_fantasia": "Barbearia do João",
   "telefone": "(19) 99999-0001",
@@ -174,7 +186,7 @@ Request:
 |-------|-------------|-----|
 | email | Sim | Único no sistema |
 | senha | Sim | Mínimo 6 caracteres |
-| cnpj | Sim | Formato `00.000.000/0000-00` ou 14 dígitos |
+| cnpj | Sim | 14 dígitos (com ou sem pontuação) |
 | razao_social | Sim | |
 | nome_fantasia | Sim | |
 | telefone | Não | |
@@ -225,15 +237,30 @@ Response (200):
 
 ---
 
-### Login
+### Login (CPF ou CNPJ)
 
 **POST** `/api/auth/login`
 
-Request:
+O campo `documento` aceita CPF (11 dígitos) ou CNPJ (14 dígitos) automaticamente.
+- Se tiver **11 dígitos** → busca na tabela `cliente` pelo CPF
+- Se tiver **14 dígitos** → busca na tabela `empresa` pelo CNPJ
+
+Request com CPF (cliente):
 
 ```json
-{ "email": "joao@email.com", "senha": "minhasenha123" }
+{ "documento": "11144477735", "senha": "minhasenha123" }
 ```
+
+Request com CNPJ (empresa):
+
+```json
+{ "documento": "11222333000181", "senha": "minhasenha123" }
+```
+
+| Campo | Obrigatório | Obs |
+|-------|-------------|-----|
+| documento | Sim | CPF (11 dígitos) ou CNPJ (14 dígitos). Aceita com ou sem pontuação, o backend limpa automaticamente |
+| senha | Sim | Mínimo 6 caracteres |
 
 Response (200):
 
@@ -242,7 +269,7 @@ Response (200):
   "success": true,
   "message": "Login realizado com sucesso",
   "data": {
-    "user": { "id": 5, "tipo": "cliente", "email": "joao@email.com" },
+    "user": { "id": 5, "tipo": "cliente", "documento": "11144477735" },
     "tokens": {
       "access": "eyJ...",
       "refresh": "eyJ..."
@@ -253,8 +280,9 @@ Response (200):
 
 Erros possíveis:
 
-- `401` — Email ou senha incorretos
+- `401` — CPF/CNPJ ou senha incorretos
 - `403` — Email não verificado (mensagem: "Confirme seu email antes de fazer login")
+- `400` — CPF ou CNPJ inválido (dígitos verificadores errados)
 
 ---
 
@@ -515,7 +543,7 @@ Request (criar):
 **POST** `/api/documentos`
 
 ```json
-{ "tipo": "rg", "arquivo_url": "/uploads/3-1717000000-rg.pdf" }
+{ "tipo": "rg", "arquivo_url": "/uploads/5-1717000000-rg.pdf" }
 ```
 
 Use a URL retornada pelo upload acima.
@@ -567,11 +595,11 @@ Response:
 ```json
 {
   "data": {
-    "filename": "3-1717000000-123456.png",
+    "filename": "5-1717000000-123456.png",
     "originalname": "foto.png",
     "mimetype": "image/png",
     "size": 204800,
-    "url": "/uploads/3-1717000000-123456.png"
+    "url": "/uploads/5-1717000000-123456.png"
   }
 }
 ```
@@ -1071,8 +1099,28 @@ Parâmetros opcionais: `pagina`, `limite`
 1. POST /api/auth/register/cliente  → cria conta
 2. Usuário abre email e clica no link
 3. GET  /api/auth/verificar/:token  → confirma email
-4. POST /api/auth/login             → recebe tokens
+4. POST /api/auth/login             → recebe tokens (envia CPF ou CNPJ como "documento")
 5. GET  /api/auth/me                → carrega dados
+```
+
+### Fluxo de login
+
+```
+Frontend:
+1. Usuário digita CPF ou CNPJ + senha
+2. Remove pontuação: documento.replace(/\D/g, '')
+3. POST /api/auth/login → { documento: "11144477735", senha: "123456" }
+
+Backend:
+1. Joi valida: 11 dígitos → CPF (valida dígitos verificadores)
+                 14 dígitos → CNPJ (valida dígitos verificadores)
+2. Service detecta tamanho, faz JOIN na tabela correta (cliente ou empresa)
+3. Verifica senha, email_verificado, ativo
+4. Retorna { user: { id, tipo, documento }, tokens: { access, refresh } }
+
+Frontend:
+5. Salva access_token + refresh_token
+6. Redireciona para /dashboard
 ```
 
 ### Fluxo de agendamento (cliente)
@@ -1431,4 +1479,6 @@ Parâmetros opcionais: `pagina`, `limite`
 > **Dúvidas?** Cada rota retorna `message` descrevendo o erro. Leia essa mensagem no console durante o desenvolvimento — ela vai te dizer exatamente o que está errado.
 ```
 
-README completo com todas as 16 entidades do banco, todas as rotas incluindo as novas (cidades, notificações), fluxos atualizados com upload, e schema com todas as 18 tabelas. Manda os blocos restantes do front quando quiser.
+---
+
+README atualizado com login por documento (CPF/CNPJ), payload do token atualizado, fluxo de login detalhado, e todas as 18 tabelas do banco.

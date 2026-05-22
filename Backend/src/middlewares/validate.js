@@ -10,11 +10,45 @@ const dateOnly = Joi.string().custom((val, helpers) => {
 
 function validate(schema) {
   return (req, res, next) => {
+    console.log('[VALIDATE] Body recebido:', JSON.stringify(req.body));
+    console.log('[VALIDATE] Content-Type:', req.headers['content-type']);
+
     const { error, value } = schema.validate(req.body, { abortEarly: false, stripUnknown: true });
-    if (error) return res_.badRequest(res, 'Dados inválidos', error.details.map(d => d.message));
+    if (error) {
+      console.log('[VALIDATE] Erros Joi:', error.details.map(d => d.message));
+      return res_.badRequest(res, 'Dados inválidos', error.details.map(d => d.message));
+    }
     req.body = value;
     next();
   };
+}
+
+function isValidCPF(cpf) {
+  if (/^(\d)\1{10}$/.test(cpf)) return false;
+  let sum = 0;
+  for (let i = 0; i < 9; i++) sum += parseInt(cpf[i]) * (10 - i);
+  let d1 = 11 - (sum % 11);
+  if (d1 >= 10) d1 = 0;
+  if (parseInt(cpf[9]) !== d1) return false;
+  sum = 0;
+  for (let i = 0; i < 10; i++) sum += parseInt(cpf[i]) * (11 - i);
+  let d2 = 11 - (sum % 11);
+  if (d2 >= 10) d2 = 0;
+  return parseInt(cpf[10]) === d2;
+}
+
+function isValidCNPJ(cnpj) {
+  if (/^(\d)\1{13}$/.test(cnpj)) return false;
+  const pesos1 = [5,4,3,2,9,8,7,6,5,4,3,2];
+  const pesos2 = [6,5,4,3,2,9,8,7,6,5,4,3,2];
+  let sum = 0;
+  for (let i = 0; i < 12; i++) sum += parseInt(cnpj[i]) * pesos1[i];
+  let d1 = sum % 11 < 2 ? 0 : 11 - (sum % 11);
+  if (parseInt(cnpj[12]) !== d1) return false;
+  sum = 0;
+  for (let i = 0; i < 13; i++) sum += parseInt(cnpj[i]) * pesos2[i];
+  let d2 = sum % 11 < 2 ? 0 : 11 - (sum % 11);
+  return parseInt(cnpj[13]) === d2;
 }
 
 function validateQuery(schema) {
@@ -52,13 +86,25 @@ const schemas = {
     telefone: Joi.string().max(15).optional(),
     cep: Joi.string().max(20).optional(),
   }),
-  login: Joi.object({
-    email: Joi.string().email().required(),
-    senha: Joi.string().required(),
+login: Joi.object({
+  documento: Joi.string().required().custom((value, helpers) => {
+    const digits = value.replace(/\D/g, '');
+    if (digits.length === 11) {
+      if (!isValidCPF(digits)) return helpers.error('any.invalid', { type: 'cpf' });
+      return digits;
+    }
+    if (digits.length === 14) {
+      if (!isValidCNPJ(digits)) return helpers.error('any.invalid', { type: 'cnpj' });
+      return digits;
+    }
+    return helpers.error('any.length');
+  }).messages({
+    'any.required': 'CPF ou CNPJ é obrigatório',
+    'any.length': 'Informe um CPF (11 dígitos) ou CNPJ (14 dígitos)',
+    'any.invalid': 'CPF ou CNPJ inválido',
   }),
-  refresh: Joi.object({
-    refresh_token: Joi.string().required(),
-  }),
+  senha: Joi.string().min(6).required(),
+}),
 
   updatePerfil: Joi.object({
     nome_fantasia: Joi.string().max(200).optional(),

@@ -15,13 +15,14 @@ function authenticate(req, res, next) {
 
   try {
     const payload = jwt.verify(token, env.jwt.secret);
-    req.user = { id: payload.sub, tipo: payload.tipo, email: payload.email };
+    req.user = { id: payload.sub, tipo: payload.tipo, documento: payload.documento };
     next();
   } catch (err) {
     if (err.name === 'TokenExpiredError') return res_.unauthorized(res, 'Token expirado');
     return res_.unauthorized(res, 'Token inválido');
   }
 }
+
 
 /**
  * Fábrica de middleware que exige um tipo específico de usuário.

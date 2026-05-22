@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { apiReenviarCodigo } from '@/services/auth';
+import { apiReenviarVerificacao } from '@/services/auth';
 import Logo from '@/components/shared/Logo';
 import StepIndicator from '@/components/shared/StepIndicator';
 import { Alerta } from '@/components/ui/Alert';

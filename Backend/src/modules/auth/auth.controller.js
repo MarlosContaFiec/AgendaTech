@@ -18,10 +18,13 @@ async function registerEmpresa(req, res, next) {
 
 async function login(req, res, next) {
   try {
-    const result = await svc.login(req.body.email, req.body.senha);
+    const result = await svc.login(req.body.documento, req.body.senha);
     res_.ok(res, result, 'Login realizado com sucesso');
-  } catch (err) { next(err); }
+  } catch (err) {
+    next(err);
+  }
 }
+
 
 async function refresh(req, res, next) {
   try {

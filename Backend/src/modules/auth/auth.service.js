@@ -14,7 +14,7 @@ if (!env.jwt.secret || !env.jwt.refreshSecret) {
 }
 
 function generateTokens(user) {
-  const accessPayload  = { sub: user.id, tipo: user.tipo, email: user.email };
+  const accessPayload  = { sub: user.id, tipo: user.tipo, documento: user.documento };
   const refreshPayload = { sub: user.id, jti: crypto.randomUUID() };
 
   const access  = jwt.sign(accessPayload,  env.jwt.secret,        { expiresIn: env.jwt.expiresIn });
@@ -22,6 +22,7 @@ function generateTokens(user) {
 
   return { access, refresh };
 }
+
 
 async function registerCliente(data) {
   const { nome, email: emailAddr, senha, cpf, telefone, data_nascimento } = data;
@@ -159,12 +160,29 @@ async function reenviarVerificacao(emailAddr) {
   return { message: 'Email de verificação reenviado' };
 }
 
-async function login(emailAddr, senha) {
-  const user = await db.queryOne(
-    `SELECT u.id, u.tipo, u.email, u.senha_hash, u.ativo, u.email_verificado
-     FROM usuario u WHERE u.email = ?`,
-    [emailAddr]
-  );
+async function login(documento, senha) {
+  const digits = documento.replace(/\D/g, '');
+  let user;
+
+  if (digits.length === 11) {
+    // CPF → cliente
+    user = await db.queryOne(
+      `SELECT u.id, u.tipo, u.email, u.senha_hash, u.ativo, u.email_verificado, c.cpf AS documento
+       FROM usuario u
+       INNER JOIN cliente c ON u.id = c.id
+       WHERE c.cpf = ?`,
+      [digits]
+    );
+  } else if (digits.length === 14) {
+    // CNPJ → empresa
+    user = await db.queryOne(
+      `SELECT u.id, u.tipo, u.email, u.senha_hash, u.ativo, u.email_verificado, e.cnpj AS documento
+       FROM usuario u
+       INNER JOIN empresa e ON u.id = e.id
+       WHERE e.cnpj = ?`,
+      [digits]
+    );
+  }
 
   if (!user || !user.ativo) {
     throw new AppError(401, 'Credenciais inválidas');
@@ -179,9 +197,10 @@ async function login(emailAddr, senha) {
     throw new AppError(403, 'Confirme seu email antes de fazer login');
   }
 
-  const payload = { id: user.id, tipo: user.tipo, email: user.email };
+  const payload = { id: user.id, tipo: user.tipo, documento: user.documento };
   return { user: payload, tokens: generateTokens(payload) };
 }
+
 
 
 async function refresh(refreshToken) {
