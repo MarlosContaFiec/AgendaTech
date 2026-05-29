@@ -1,0 +1,4 @@
+import React from 'react';
+export default function Input({label,error,icon:Icon,className='',...props}){
+  return(<div className="space-y-1.5">{label&&<label className="block text-sm font-medium text-[var(--text-secondary)]">{label}</label>}<div className="relative">{Icon&&<div className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]"><Icon size={18}/></div>}<input className={'w-full bg-[var(--bg-surface)] border rounded-xl px-4 py-2.5 text-[var(--text-primary)] placeholder-[var(--text-muted)] transition-colors focus:outline-none focus:border-[var(--accent)] '+(Icon?'pl-10 ':'')+(error?'border-[var(--error)]':'border-[var(--border)]')+' '+className} {...props}/></div>{error&&<p className="text-xs text-[var(--error)]">{error}</p>}</div>);
+}

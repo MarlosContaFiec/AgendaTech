@@ -1,0 +1,5 @@
+import React from 'react';
+import Logo from '../shared/Logo';
+export default function AuthLayout({children}){
+  return(<div className="min-h-screen flex"><div className="hidden lg:flex lg:w-1/2 bg-[var(--bg-secondary)] items-center justify-center p-12 relative overflow-hidden"><div className="absolute inset-0 opacity-30"><div className="absolute top-1/4 left-1/4 w-64 h-64 bg-[var(--accent)] rounded-full blur-[120px]"/><div className="absolute bottom-1/4 right-1/4 w-48 h-48 bg-purple-500 rounded-full blur-[100px]"/></div><div className="relative z-10 text-center space-y-6"><Logo size="lg"/><p className="text-[var(--text-secondary)] text-lg max-w-md">Sistema completo de agendamentos</p></div></div><div className="flex-1 flex items-center justify-center p-6 bg-[var(--bg-primary)]"><div className="w-full max-w-md auth-container"><div className="lg:hidden mb-8 text-center"><Logo/></div>{children}</div></div></div>);
+}

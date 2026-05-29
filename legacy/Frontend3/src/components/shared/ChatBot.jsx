@@ -1,0 +1,8 @@
+import React,{useState,useEffect} from 'react';
+import {FiMessageCircle,FiX} from 'react-icons/fi';
+import {api} from '../../services/api';
+export default function ChatBot({empresaId}){
+  const [open,setOpen]=useState(false);const [faq,setFaq]=useState([]);const [config,setConfig]=useState(null);
+  useEffect(function(){if(open&&empresaId){api('GET','/api/mensagens/publico/'+empresaId+'/faq').then(function(r){if(r.success){setConfig(r.data.config||null);setFaq(r.data.faq||[]);}});}},[open,empresaId]);
+  return(<><button onClick={function(){setOpen(!open);}} className="fixed bottom-6 right-6 w-14 h-14 bg-[var(--accent)] text-white rounded-full shadow-lg flex items-center justify-center hover:bg-[var(--accent-hover)] transition-colors z-50">{open?<FiX size={22}/>:<FiMessageCircle size={22}/>}</button>{open&&<div className="fixed bottom-24 right-6 w-80 bg-[var(--bg-secondary)] border border-[var(--border)] rounded-2xl shadow-2xl z-50 overflow-hidden"><div className="p-4 bg-[var(--accent)]"><p className="text-white font-medium text-sm">Chat</p></div><div className="p-4 space-y-2 max-h-64 overflow-y-auto">{config&&config.mensagem_abertura&&<div className="bg-[var(--bg-surface)] rounded-xl p-3 text-sm text-[var(--text-secondary)]">{config.mensagem_abertura}</div>}{faq.map(function(item){return <details key={item.id} className="group"><summary className="cursor-pointer p-2 rounded-lg hover:bg-[var(--bg-surface)] text-sm text-[var(--text-primary)] font-medium">{item.pergunta}</summary><p className="p-2 text-sm text-[var(--text-secondary)]">{item.resposta}</p></details>})}{faq.length===0&&<p className="text-sm text-[var(--text-muted)] text-center py-4">Nenhuma pergunta</p>}</div></div>}</>);
+}

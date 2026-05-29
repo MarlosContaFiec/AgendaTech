@@ -1,0 +1,2 @@
+.dashboard-content{animation:dashFadeIn .3s ease}
+@keyframes dashFadeIn{from{opacity:0}to{opacity:1}}
