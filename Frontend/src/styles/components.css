@@ -1,0 +1,165 @@
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: .5rem;
+  border: 0;
+  border-radius: var(--radius-md);
+  padding: .8rem 1rem;
+  font-size: .9rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all .2s ease;
+}
+.btn:hover { letter-spacing: .02em; }
+.btn-primary { background: var(--purple); color: white; }
+.btn-primary:hover { background: var(--purple-hover); box-shadow: var(--shadow-glow); }
+.btn-ghost { background: transparent; color: var(--text-muted); }
+.btn-ghost:hover { background: var(--surface-alt); color: var(--foreground); }
+.btn-danger { background: var(--danger); color: white; }
+.btn-danger:hover { filter: brightness(.92); }
+
+.input {
+  width: 100%;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--line-light);
+  background: var(--surface-alt);
+  color: var(--foreground);
+  padding: .85rem .95rem;
+  outline: none;
+  transition: all .2s ease;
+}
+.input:focus {
+  border-color: var(--purple);
+  box-shadow: 0 0 0 3px var(--purple-soft);
+}
+.label {
+  display: block;
+  margin-bottom: .35rem;
+  font-size: .7rem;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: var(--text-muted);
+  font-weight: 700;
+}
+.field-error {
+  margin-top: .35rem;
+  font-size: .72rem;
+  color: var(--danger);
+}
+.card {
+  border: 1px solid var(--line);
+  background: rgba(17,17,24,.96);
+  border-radius: var(--radius-lg);
+  padding: 1.25rem;
+}
+.panel {
+  border: 1px solid var(--line);
+  background: rgba(17,17,24,.96);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+}
+.pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: .35rem;
+  border-radius: var(--radius-full);
+  padding: .25rem .6rem;
+  font-size: .62rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+}
+.pill-default { background: var(--purple-soft); color: var(--purple); }
+.pill-success { background: rgba(0,184,148,.12); color: var(--success); }
+.pill-danger { background: rgba(255,107,107,.12); color: var(--danger); }
+.pill-warning { background: rgba(253,203,110,.12); color: var(--warning); }
+.pill-info { background: rgba(0,212,255,.12); color: var(--cyan); }
+
+.section-title {
+  font-size: 2.8rem;
+  line-height: .9;
+  color: var(--foreground);
+}
+.section-subtitle {
+  color: var(--text-muted);
+  font-size: .9rem;
+}
+.separator {
+  height: 1px;
+  background: var(--line);
+}
+.avatar {
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--purple), var(--cyan));
+  color: white;
+  font-weight: 700;
+}
+.status-pendente { color: var(--warning); }
+.status-confirmado, .status-concluido, .status-aprovado, .status-aceito { color: var(--success); }
+.status-cancelado, .status-rejeitado, .status-negado { color: var(--danger); }
+.status-default { color: var(--foreground); }
+
+.badge-chip {
+  border-radius: var(--radius-full);
+  padding: .25rem .6rem;
+  font-size: .72rem;
+  border: 1px solid var(--line);
+  color: var(--foreground);
+  background: var(--surface-alt);
+}
+
+.stat {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: rgba(17,17,24,.96);
+  padding: 1.15rem 1.15rem 1rem;
+}
+.stat-value {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 2.8rem;
+  line-height: 1;
+  color: var(--purple);
+}
+.stat-label {
+  color: var(--text-muted);
+  font-size: .78rem;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+}
+.empty {
+  border: 1px solid var(--line);
+  background: rgba(17,17,24,.96);
+  border-radius: var(--radius-lg);
+  padding: 4rem 1.5rem;
+  text-align: center;
+}
+.empty-icon {
+  font-size: 2.25rem;
+  color: var(--text-muted);
+  margin-bottom: 1rem;
+}
+.tab {
+  border: 1px solid var(--line);
+  background: var(--surface-alt);
+  color: var(--text-muted);
+  border-radius: var(--radius-full);
+  padding: .55rem .9rem;
+  font-size: .82rem;
+  cursor: pointer;
+  transition: all .2s ease;
+}
+.tab.active {
+  background: var(--purple);
+  color: white;
+  border-color: var(--purple);
+}
+.tab:hover { transform: translateY(-1px); }
+
+
+.shadow-glow { box-shadow: var(--shadow-glow); }
+.bg-brand { background: linear-gradient(135deg, var(--purple), var(--cyan)); }
+.text-brand { color: var(--purple); }
