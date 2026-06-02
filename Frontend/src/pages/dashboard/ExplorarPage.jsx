@@ -5,6 +5,7 @@ import { getCompanies, getCities, getFeaturedCompanies, getNiches } from '../../
 import { Button, Input, Select, Badge } from '../../components/ui'
 import { currency } from '../../utils/formatters'
 
+
 export default function ExplorarPage() {
   const [busca, setBusca] = useState('')
   const [nicho, setNicho] = useState('')
@@ -34,27 +35,42 @@ export default function ExplorarPage() {
   ]
 
   return (
-    <div className="space-y-5">
+    <div className="min-h-screen bg-[#0d1117] text-white">
       <SectionHeader title="Explorar" subtitle="Busque empresas, nichos e cidades" />
-      <div className="panel space-y-4">
-        <Input label="Busca" placeholder="Empresa, serviço..." value={busca} onChange={(e) => setBusca(e.target.value)} />
+      <div className="panel space-y-4 border border-[#232838] bg-[#131720] rounded-2xl shadow-[0_0_25px_rgba(0,0,0,0.25)]">
+        <Input 
+        className="bg-[#0f141c] border border-[#2a3142] text-white placeholder:text-gray-500 rounded-xl"
+        label="Busca" 
+        placeholder="Empresa, serviço..." 
+        value={busca} 
+        onChange={(e) => setBusca(e.target.value)} />
         <div className="form-grid three">
-          <Select label="Nicho" value={nicho} onChange={(e) => setNicho(e.target.value)}>
+          <Select 
+          className="bg-[#0f141c] border border-[#2a3142] text-white rounded-xl"
+          label="Nicho" 
+          value={nicho} 
+          onChange={(e) => setNicho(e.target.value)}>
             <option value="">Todos</option>
             {(niches || []).map((item) => <option key={`${item.nicho}-${item.sub_nicho}`} value={item.nicho}>{item.nicho} / {item.sub_nicho}</option>)}
           </Select>
-          <Select label="Cidade" value={cidade} onChange={(e) => setCidade(e.target.value)}>
+          <Select 
+          className="bg-[#0f141c] border border-[#2a3142] text-white rounded-xl"
+          label="Cidade" 
+          value={cidade} 
+          onChange={(e) => setCidade(e.target.value)}>
             <option value="">Todas</option>
             {(cities || []).map((item) => <option key={`${item.cidade}-${item.estado}`} value={item.cidade}>{item.cidade} / {item.estado}</option>)}
           </Select>
-          <Button className="self-end">Buscar</Button>
+          <Button className="self-end bg-gradient-to-r from-violet-600 to-indigo-600 hover:scale-[1.02] transition rounded-xl border-0">Buscar</Button>
         </div>
       </div>
 
       <div className="grid-cards three">
         {(featured?.length ? featured : results.slice(0, 3)).map((item) => (
-          <div key={item.id} className="card hover:-translate-y-0.5 transition">
-            <div className="mx-auto mb-3 grid h-14 w-14 place-items-center rounded-[14px] bg-brand text-xl font-bold text-white">
+          <div 
+          key={item.id} 
+          className="card hover:-translate-y-1 transition-all duration-300 bg-[#131720] border border-[#232838] rounded-2xl hover:border-violet-500/40 hover:shadow-[0_0_30px_rgba(139,92,246,0.18)]">
+            <div className="mx-auto mb-3 grid h-14 w-14 place-items-center rounded-[14px] bg-gradient-to-br from-violet-500 to-indigo-600 text-xl font-bold text-white">
               {String(item.nome_fantasia || item.nome || 'A').charAt(0)}
             </div>
             <div className="text-center">
@@ -69,11 +85,11 @@ export default function ExplorarPage() {
         ))}
       </div>
 
-      <div className="panel">
-        <h3 className="mb-4 text-3xl text-foreground">Resultados</h3>
+      <div className="panel bg-[#131720] border border-[#232838] rounded-2xl">
+        <h3 className="mb-4 text-3xl text-white">Resultados</h3>
         <div className="list-stack">
           {results.map((item) => (
-            <div key={item.id} className="list-item flex flex-wrap items-center justify-between gap-4">
+            <div key={item.id} className="list-item flex flex-wrap items-center justify-between gap-4 bg-[#0f141c] border border-[#232838] rounded-xl p-4 hover:border-violet-500/30 transition">
               <div>
                 <div className="text-foreground">{item.nome_fantasia}</div>
                 <div className="text-sm text-muted">{item.nicho} · {item.sub_nicho} · {item.cidade} / {item.estado}</div>
