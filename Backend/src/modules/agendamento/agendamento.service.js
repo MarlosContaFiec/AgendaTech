@@ -143,6 +143,25 @@ async function getSlots(empresaId, servicoId, dateRaw) {
   return { disponivel: true, tags, slots };
 }
 
+/**
+ * Helper: Retorna agendamento com todas as informações relacionadas
+ * CRÍTICO: Garante que TODOS os endpoints retornam dados consistentes
+ */
+async function getAgendamentoCompleto(agendamentoId) {
+  return db.queryOne(
+    `SELECT a.*, 
+            c.nome AS cliente_nome, c.score AS cliente_score,
+            s.nome AS servico_nome, s.duracao_minutos,
+            e.nome_fantasia AS empresa_nome, e.id AS empresa_id
+     FROM agendamento a
+     JOIN cliente c ON c.id = a.cliente_id
+     JOIN servico s ON s.id = a.servico_id
+     JOIN empresa e ON e.id = a.empresa_id
+     WHERE a.id = ?`,
+    [agendamentoId]
+  );
+}
+
 async function create(clienteId, data) {
   const { servico_id, empresa_id, hora_inicio, notas } = data;
   const data_agendamento = String(data.data_agendamento).slice(0, 10);
@@ -180,12 +199,7 @@ async function create(clienteId, data) {
     await enviarNotificacaoAutomatica(empresa_id, clienteId, r.insertId, 'confirmacao');
   }
 
-  return db.queryOne(
-    `SELECT a.*, s.nome AS servico_nome, e.nome_fantasia FROM agendamento a
-     JOIN servico s ON s.id=a.servico_id
-     JOIN empresa e ON e.id=a.empresa_id
-     WHERE a.id=?`, [r.insertId]
-  );
+  return getAgendamentoCompleto(r.insertId);
 }
 
 async function listEmpresa(empresaId, filters = {}) {
@@ -256,7 +270,7 @@ async function aceitar(empresaId, id) {
     [id]
   );
   await enviarNotificacaoAutomatica(empresaId, ag.cliente_id, id, 'confirmacao');
-  return db.queryOne(`SELECT * FROM agendamento WHERE id=?`, [id]);
+  return getAgendamentoCompleto(id);
 }
 
 async function recusar(empresaId, id, motivo) {
@@ -272,7 +286,7 @@ async function recusar(empresaId, id, motivo) {
   const filaSvc = require('../fila/fila.service');
   await filaSvc.notificarProximo(empresaId, ag.servico_id, ag.data_agendamento, ag.hora_inicio);
 
-  return db.queryOne(`SELECT * FROM agendamento WHERE id=?`, [id]);
+  return getAgendamentoCompleto(id);
 }
 
 
@@ -284,7 +298,7 @@ async function concluir(empresaId, id) {
   await db.execute(`UPDATE agendamento SET status_agendamento='concluido' WHERE id=?`, [id]);
 
   await aplicarScore(ag.cliente_id, id, 1.0, 'Compareceu ao agendamento');
-  return db.queryOne(`SELECT * FROM agendamento WHERE id=?`, [id]);
+  return getAgendamentoCompleto(id);
 }
 
 async function cancelarCliente(clienteId, id, motivo) {
@@ -327,7 +341,7 @@ async function cancelarCliente(clienteId, id, motivo) {
   const filaSvc = require('../fila/fila.service');
   await filaSvc.notificarProximo(ag.empresa_id, ag.servico_id, ag.data_agendamento, ag.hora_inicio);
 
-  return { agendamento: await db.queryOne(`SELECT * FROM agendamento WHERE id=?`, [id]), taxaInfo };
+  return { agendamento: await getAgendamentoCompleto(id), taxaInfo };
 }
 
 
@@ -389,7 +403,7 @@ async function reagendar(clienteId, id, data) {
     await enviarNotificacaoAutomatica(ag.empresa_id, clienteId, r.insertId, 'confirmacao');
   }
 
-  return db.queryOne(`SELECT * FROM agendamento WHERE id=?`, [r.insertId]);
+  return getAgendamentoCompleto(r.insertId);
 }
 
 async function aplicarScore(clienteId, agendamentoId, variacao, motivo) {
