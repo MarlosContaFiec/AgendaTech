@@ -1,19 +1,22 @@
 import { api, upload as uploadFile } from './api'
+import { createCrudService } from './crudFactory'
 
 export const getClientProfile = () => api('/api/cliente/perfil')
 export const updateClientProfile = (payload) => api('/api/cliente/perfil', { method: 'PUT', body: payload })
 export const getClientCalendar = () => api('/api/cliente/calendario')
 export const getClientScore = () => api('/api/cliente/score')
 
-export const listDependents = () => api('/api/cliente/dependentes')
-export const createDependent = (payload) => api('/api/cliente/dependentes', { method: 'POST', body: payload })
-export const updateDependent = (id, payload) => api(`/api/cliente/dependentes/${id}`, { method: 'PUT', body: payload })
-export const deleteDependent = (id) => api(`/api/cliente/dependentes/${id}`, { method: 'DELETE' })
+const depCrud = createCrudService('/api/cliente/dependentes')
+export const listDependents  = depCrud.list
+export const createDependent = depCrud.create
+export const updateDependent = depCrud.update
+export const deleteDependent = depCrud.remove
 
-export const listDocuments = () => api('/api/documentos')
-export const createDocument = (payload) => api('/api/documentos', { method: 'POST', body: payload })
-export const deleteDocument = (id) => api(`/api/documentos/${id}`, { method: 'DELETE' })
-export const uploadSingle = (file) => uploadFile('/api/upload/single', file)
+const docCrud = createCrudService('/api/documentos')
+export const listDocuments  = docCrud.list
+export const createDocument = docCrud.create
+export const deleteDocument = docCrud.remove
+export const uploadSingle   = (file) => uploadFile('/api/upload/single', file)
 export const uploadMultiple = (files) => uploadFile('/api/upload/multiple', files, null, 'arquivos')
 
 export const createSolicitacao = (payload) => api('/api/solicitacoes', { method: 'POST', body: payload })

@@ -1,6 +1,8 @@
 'use strict';
 const db = require('../../config/database');
 const AppError = require('../../utils/AppError');
+const { addMinutes } = require('../../utils/timeHelpers');
+const { sendAutoMessage } = require('../../utils/messageHelpers');
 
 async function create(clienteId, data) {
   const { agendamento_id, minutos_extra, motivo } = data;
@@ -28,12 +30,13 @@ async function create(clienteId, data) {
     [agendamento_id, minutos_extra, motivo || null]
   );
 
-  await db.execute(
-    `INSERT INTO mensagem (empresa_id, cliente_id, tipo, mensagem, automatica, enviado_por)
-     VALUES (?, ?, 'outro', ?, TRUE, 'cliente')`,
-    [ag.empresa_id, clienteId,
-     `Solicitação de horário estendido: +${minutos_extra} minutos para ${ag.servico_nome} em ${ag.data_agendamento}. Motivo: ${motivo || 'Não informado'}`]
-  );
+  await sendAutoMessage({
+    empresaId: ag.empresa_id,
+    clienteId,
+    tipo: 'outro',
+    mensagem: `Solicitação de horário estendido: +${minutos_extra} minutos para ${ag.servico_nome} em ${ag.data_agendamento}. Motivo: ${motivo || 'Não informado'}`,
+    enviadoPor: 'cliente',
+  });
 
   return db.queryOne(`SELECT * FROM solicitacao_horario WHERE id = ?`, [r.insertId]);
 }
@@ -92,21 +95,14 @@ async function responder(empresaId, solicitacaoId, data) {
   let msg = `Sua solicitação de +${sol.minutos_extra} minutos para ${sol.servico_nome} foi ${statusLabel}.`;
   if (data.resposta_empresa) msg += ` Resposta: ${data.resposta_empresa}`;
 
-  await db.execute(
-    `INSERT INTO mensagem (empresa_id, cliente_id, tipo, mensagem, automatica, enviado_por)
-     VALUES (?, ?, 'outro', ?, TRUE, 'empresa')`,
-    [empresaId, sol.cliente_id, msg]
-  );
+  await sendAutoMessage({
+    empresaId,
+    clienteId: sol.cliente_id,
+    tipo: 'outro',
+    mensagem: msg,
+  });
 
   return db.queryOne(`SELECT * FROM solicitacao_horario WHERE id = ?`, [solicitacaoId]);
-}
-
-function addMinutes(timeStr, minutes) {
-  const [h, m] = timeStr.split(':').map(Number);
-  const total = h * 60 + m + minutes;
-  const nh = Math.floor(total / 60) % 24;
-  const nm = total % 60;
-  return `${String(nh).padStart(2, '0')}:${String(nm).padStart(2, '0')}:00`;
 }
 
 module.exports = { create, listByAgendamento, listPendentes, responder };

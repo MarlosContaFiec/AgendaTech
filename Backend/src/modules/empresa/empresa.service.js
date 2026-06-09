@@ -1,6 +1,7 @@
 'use strict';
 const db = require('../../config/database');
 const AppError = require('../../utils/AppError');
+const { buildUpdateSets, ensureAffected } = require('../../utils/queryHelpers');
 
 async function getPerfil(empresaId) {
   return db.queryOne(
@@ -18,76 +19,41 @@ async function getPerfil(empresaId) {
 }
 
 async function updatePerfil(empresaId, data) {
-  const empresaFields = {
-    nome_fantasia: data.nome_fantasia,
-    razao_social: data.razao_social,
-    telefone: data.telefone,
-    cep: data.cep,
-    endereco: data.endereco,
-    numero: data.numero,
-    complemento: data.complemento,
-    bairro: data.bairro,
-    cidade: data.cidade,
-    estado: data.estado,
-    nicho: data.nicho,
-    sub_nicho: data.sub_nicho,
-    site: data.site,
-    max_agendamentos_global: data.max_agendamentos_global,
-  };
+  const empresaAllowed = [
+    'nome_fantasia', 'razao_social', 'telefone', 'cep', 'endereco', 'numero',
+    'complemento', 'bairro', 'cidade', 'estado', 'nicho', 'sub_nicho', 'site',
+    'max_agendamentos_global',
+  ];
+  const profileAllowed = ['descricao', 'logo_url', 'cor_primaria', 'cor_secundaria'];
 
-  const profileFields = {
-    descricao: data.descricao,
-    logo_url: data.logo_url,
-    cor_primaria: data.cor_primaria,
-    cor_secundaria: data.cor_secundaria,
-  };
+  const emptyToNull = (v) => (v === '' ? null : v);
+  const empresaTransforms = Object.fromEntries(empresaAllowed.map(k => [k, emptyToNull]));
+  const profileTransforms = Object.fromEntries(profileAllowed.map(k => [k, emptyToNull]));
 
-  const setSql = [], setVals = [];
-  for (const [k, v] of Object.entries(empresaFields)) {
-    if (v !== undefined) {
-      setSql.push(`${k} = ?`);
-      setVals.push(v === '' ? null : v);
-    }
-  }
+  const empresa = buildUpdateSets(data, empresaAllowed, empresaTransforms);
+  const profile = buildUpdateSets(data, profileAllowed, profileTransforms);
 
-  const profileSets = [], profileVals = [];
-  for (const [k, v] of Object.entries(profileFields)) {
-    if (v !== undefined) {
-      profileSets.push(`${k} = ?`);
-      profileVals.push(v === '' ? null : v);
-    }
-  }
-
-  if (setSql.length === 0 && profileSets.length === 0) {
+  if (empresa.sets.length === 0 && profile.sets.length === 0) {
     throw new AppError(400, 'Nenhum campo para atualizar');
   }
 
-  const conn = await db.beginTransaction();
-  try {
-    if (setSql.length > 0) {
+  await db.withTransaction(async (conn) => {
+    if (empresa.sets.length > 0) {
       await conn.execute(
-        `UPDATE empresa SET ${setSql.join(', ')} WHERE id = ?`,
-        [...setVals, empresaId]
+        `UPDATE empresa SET ${empresa.sets.join(', ')} WHERE id = ?`,
+        [...empresa.vals, empresaId]
       );
     }
 
-    if (profileVals.length > 0) {
+    if (profile.vals.length > 0) {
       await conn.execute(
         `INSERT INTO empresaProfile (empresa_id)
          VALUES (?)
-         ON DUPLICATE KEY UPDATE ${profileSets.join(', ')}`,
-        [empresaId, ...profileVals]
+         ON DUPLICATE KEY UPDATE ${profile.sets.join(', ')}`,
+        [empresaId, ...profile.vals]
       );
     }
-
-    await conn.commit();
-    conn.release();
-  } catch (err) {
-    await conn.rollback();
-    conn.release();
-    console.error('Erro ao atualizar perfil da empresa:', err);
-    throw new AppError(500, 'Erro ao atualizar perfil');
-  }
+  });
 
   return getPerfil(empresaId);
 }
@@ -160,7 +126,7 @@ async function deleteCapacidade(empresaId, id) {
     `DELETE FROM capacidade_horario WHERE id = ? AND empresa_id = ?`,
     [id, empresaId]
   );
-  if (r.affectedRows === 0) throw new AppError(404, 'Capacidade não encontrada');
+  ensureAffected(r, 'Capacidade');
 }
 
 module.exports = { getPerfil, updatePerfil, getDashboard, getCapacidades, upsertCapacidade, deleteCapacidade };

@@ -2,15 +2,14 @@
 const db     = require('../../config/database');
 const res_   = require('../../utils/response');
 const cal    = require('../../utils/calendarEngine');
+const wrap   = require('../../utils/wrapAsync');
+const { parsePagination } = require('../../utils/pagination');
 const router = require('express').Router();
 const { validateQuery, schemas } = require('../../middlewares/validate');
 
-
-
 async function listarEmpresas(filters = {}) {
   const { busca, nicho, cidade, estado } = filters;
-  const pagina = parseInt(filters.pagina) || 1;
-  const limite = parseInt(filters.limite) || 20;
+  const { limite, offset } = parsePagination(filters);
   const where = ['u.ativo = 1'];
   const params = [];
 
@@ -22,8 +21,6 @@ async function listarEmpresas(filters = {}) {
   if (nicho) { where.push('e.nicho = ?'); params.push(nicho); }
   if (cidade) { where.push('e.cidade LIKE ?'); params.push(`%${cidade}%`); }
   if (estado) { where.push('e.estado = ?'); params.push(estado); }
-
-  const offset = (pagina - 1) * limite;
 
   return db.queryRaw(
     `SELECT e.id, e.nome_fantasia, e.nicho, e.sub_nicho, e.cidade, e.estado,
@@ -44,7 +41,6 @@ async function listarEmpresas(filters = {}) {
     params
   );
 }
-
 
 async function getPerfilPublico(empresaId) {
   const empresa = await db.queryOne(
@@ -133,48 +129,24 @@ async function getCidades() {
   );
 }
 
-
-router.get('/empresas/cidades', async (_req, res, next) => {
-  try { res_.ok(res, await getCidades()); } catch (e) { next(e); }
-});
-
-router.get('/empresas/destaques', async (_req, res, next) => {
-  try { res_.ok(res, await getDestaquesUltimas24h()); } catch (e) { next(e); }
-});
-
-router.get('/empresas/nichos', async (_req, res, next) => {
-  try { res_.ok(res, await getNichos()); } catch (e) { next(e); }
-});
-
-router.get('/empresas', validateQuery(schemas.filtroEmpresas), async (req, res, next) => {
-  try { res_.ok(res, await listarEmpresas(req.query)); } catch (e) { next(e); }
-});
-
-router.get('/empresas/:id', async (req, res, next) => {
-  try {
-    const p = await getPerfilPublico(req.params.id);
-    if (!p) return res_.notFound(res, 'Empresa');
-    res_.ok(res, p);
-  } catch (e) { next(e); }
-});
-
-router.get('/empresas/:id/disponibilidade',
-  validateQuery(schemas.filtroDisponibilidade),
-  async (req, res, next) => {
-    try {
-      const { servico_id, data } = req.query;
-      if (!servico_id) return res_.badRequest(res, 'servico_id obrigatório');
-      res_.ok(res, await getDisponibilidade(req.params.id, servico_id, data));
-    } catch (e) { next(e); }
-  }
-);
-
-router.get('/empresas/:id/calendario', async (req, res, next) => {
-  try {
-    const { ano, mes } = req.query;
-    if (!ano || !mes) return res_.badRequest(res, 'Informe ano e mes');
-    res_.ok(res, await getCalendarioPublico(req.params.id, ano, mes));
-  } catch (e) { next(e); }
-});
+router.get('/empresas/cidades', wrap(async (_req, res) => { res_.ok(res, await getCidades()); }));
+router.get('/empresas/destaques', wrap(async (_req, res) => { res_.ok(res, await getDestaquesUltimas24h()); }));
+router.get('/empresas/nichos', wrap(async (_req, res) => { res_.ok(res, await getNichos()); }));
+router.get('/empresas', validateQuery(schemas.filtroEmpresas), wrap(async (req, res) => { res_.ok(res, await listarEmpresas(req.query)); }));
+router.get('/empresas/:id', wrap(async (req, res) => {
+  const p = await getPerfilPublico(req.params.id);
+  if (!p) return res_.notFound(res, 'Empresa');
+  res_.ok(res, p);
+}));
+router.get('/empresas/:id/disponibilidade', validateQuery(schemas.filtroDisponibilidade), wrap(async (req, res) => {
+  const { servico_id, data } = req.query;
+  if (!servico_id) return res_.badRequest(res, 'servico_id obrigatório');
+  res_.ok(res, await getDisponibilidade(req.params.id, servico_id, data));
+}));
+router.get('/empresas/:id/calendario', wrap(async (req, res) => {
+  const { ano, mes } = req.query;
+  if (!ano || !mes) return res_.badRequest(res, 'Informe ano e mes');
+  res_.ok(res, await getCalendarioPublico(req.params.id, ano, mes));
+}));
 
 module.exports = router;

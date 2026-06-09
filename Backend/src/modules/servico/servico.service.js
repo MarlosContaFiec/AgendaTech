@@ -1,6 +1,7 @@
 'use strict';
 const db = require('../../config/database');
 const AppError = require('../../utils/AppError');
+const { buildUpdateSets, ensureAffected } = require('../../utils/queryHelpers');
 
 async function list(empresaId) {
   const servicos = await db.query(
@@ -49,14 +50,32 @@ function parseServico(s) {
   };
 }
 
+async function syncHorariosAndTags(conn, servicoId, horarios, tagIds) {
+  if (horarios !== undefined) {
+    await conn.execute(`DELETE FROM servico_horario WHERE servico_id = ?`, [servicoId]);
+    for (const h of horarios) {
+      await conn.execute(
+        `INSERT INTO servico_horario (servico_id, dia_semana, hora_inicio, hora_fim) VALUES (?, ?, ?, ?)`,
+        [servicoId, h.dia_semana ?? null, h.hora_inicio, h.hora_fim]
+      );
+    }
+  }
+  if (tagIds !== undefined) {
+    await conn.execute(`DELETE FROM servico_tag WHERE servico_id = ?`, [servicoId]);
+    for (const tagId of tagIds) {
+      await conn.execute(`INSERT IGNORE INTO servico_tag (servico_id, tag_id) VALUES (?, ?)`, [servicoId, tagId]);
+    }
+  }
+}
+
 async function create(empresaId, data) {
   if (!data.nome?.trim()) throw new AppError(400, 'Nome do serviço é obrigatório');
   if (!data.duracao_minutos || data.duracao_minutos < 1) throw new AppError(400, 'Duração inválida');
   if (data.preco_base == null || data.preco_base < 0) throw new AppError(400, 'Preço inválido');
 
   const { horarios = [], tag_ids = [], ...fields } = data;
-  const conn = await db.beginTransaction();
-  try {
+
+  const servicoId = await db.withTransaction(async (conn) => {
     const r = await conn.execute(
       `INSERT INTO servico (empresa_id, nome, descricao, duracao_minutos, preco_base,
                             aceitamento_automatico, max_por_horario, hora_inicio, hora_fim, intervalo_minutos)
@@ -65,30 +84,12 @@ async function create(empresaId, data) {
        fields.aceitamento_automatico ? 1 : 0, fields.max_por_horario || null,
        fields.hora_inicio || null, fields.hora_fim || null, fields.intervalo_minutos || 0]
     );
-    const servicoId = r[0].insertId;
+    const id = r[0].insertId;
+    await syncHorariosAndTags(conn, id, horarios, tag_ids);
+    return id;
+  });
 
-    for (const h of horarios) {
-      await conn.execute(
-        `INSERT INTO servico_horario (servico_id, dia_semana, hora_inicio, hora_fim) VALUES (?, ?, ?, ?)`,
-        [servicoId, h.dia_semana ?? null, h.hora_inicio, h.hora_fim]
-      );
-    }
-    for (const tagId of tag_ids) {
-      await conn.execute(
-        `INSERT IGNORE INTO servico_tag (servico_id, tag_id) VALUES (?, ?)`,
-        [servicoId, tagId]
-      );
-    }
-
-    await conn.commit();
-    conn.release();
-    return getById(empresaId, servicoId);
-  } catch (err) {
-    await conn.rollback();
-    conn.release();
-    console.error('Erro ao criar serviço:', err);
-    throw new AppError(500, 'Erro ao criar serviço');
-  }
+  return getById(empresaId, servicoId);
 }
 
 async function update(empresaId, id, data) {
@@ -96,47 +97,21 @@ async function update(empresaId, id, data) {
   if (!exists) throw new AppError(404, 'Serviço não encontrado');
 
   const { horarios, tag_ids, ...fields } = data;
-  const conn = await db.beginTransaction();
-  try {
-    const sets = [], vals = [];
+
+  await db.withTransaction(async (conn) => {
     const allowed = ['nome', 'descricao', 'duracao_minutos', 'preco_base', 'ativo',
       'aceitamento_automatico', 'max_por_horario', 'hora_inicio', 'hora_fim', 'intervalo_minutos'];
-    for (const k of allowed) {
-      if (fields[k] !== undefined) { sets.push(`${k} = ?`); vals.push(fields[k]); }
-    }
+    const { sets, vals } = buildUpdateSets(fields, allowed);
     if (sets.length) {
       await conn.execute(
         `UPDATE servico SET ${sets.join(', ')} WHERE id = ? AND empresa_id = ?`,
         [...vals, id, empresaId]
       );
     }
+    await syncHorariosAndTags(conn, id, horarios, tag_ids);
+  });
 
-    if (horarios !== undefined) {
-      await conn.execute(`DELETE FROM servico_horario WHERE servico_id = ?`, [id]);
-      for (const h of horarios) {
-        await conn.execute(
-          `INSERT INTO servico_horario (servico_id, dia_semana, hora_inicio, hora_fim) VALUES (?, ?, ?, ?)`,
-          [id, h.dia_semana ?? null, h.hora_inicio, h.hora_fim]
-        );
-      }
-    }
-
-    if (tag_ids !== undefined) {
-      await conn.execute(`DELETE FROM servico_tag WHERE servico_id = ?`, [id]);
-      for (const tagId of tag_ids) {
-        await conn.execute(`INSERT IGNORE INTO servico_tag (servico_id, tag_id) VALUES (?, ?)`, [id, tagId]);
-      }
-    }
-
-    await conn.commit();
-    conn.release();
-    return getById(empresaId, id);
-  } catch (err) {
-    await conn.rollback();
-    conn.release();
-    console.error('Erro ao atualizar serviço:', err);
-    throw new AppError(500, 'Erro ao atualizar serviço');
-  }
+  return getById(empresaId, id);
 }
 
 async function remove(empresaId, id) {
@@ -144,7 +119,7 @@ async function remove(empresaId, id) {
     `UPDATE servico SET ativo = FALSE WHERE id = ? AND empresa_id = ?`,
     [id, empresaId]
   );
-  if (r.affectedRows === 0) throw new AppError(404, 'Serviço não encontrado');
+  ensureAffected(r, 'Serviço');
 }
 
 module.exports = { list, getById, create, update, remove };
