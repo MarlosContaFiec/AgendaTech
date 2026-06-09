@@ -1,17 +1,10 @@
 'use strict';
 const svc = require('./solicitacao.service');
 const res_ = require('../../utils/response');
+const wrap = require('../../utils/wrapAsync');
 
-async function create(req, res, next) {
-  try { res_.created(res, await svc.create(req.user.id, req.body)); } catch (e) { next(e); }
-}
-
-async function listPendentes(req, res, next) {
-  try { res_.ok(res, await svc.listPendentes(req.user.id)); } catch (e) { next(e); }
-}
-
-async function responder(req, res, next) {
-  try { res_.ok(res, await svc.responder(req.user.id, req.params.id, req.body)); } catch (e) { next(e); }
-}
+const create       = wrap(async (req, res) => { res_.created(res, await svc.create(req.user.id, req.body)); });
+const listPendentes = wrap(async (req, res) => { res_.ok(res, await svc.listPendentes(req.user.id)); });
+const responder    = wrap(async (req, res) => { res_.ok(res, await svc.responder(req.user.id, req.params.id, req.body)); });
 
 module.exports = { create, listPendentes, responder };

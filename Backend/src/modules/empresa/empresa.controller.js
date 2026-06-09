@@ -1,41 +1,13 @@
 'use strict';
 const svc  = require('./empresa.service');
 const res_ = require('../../utils/response');
+const wrap = require('../../utils/wrapAsync');
 
-async function getPerfil(req, res, next) {
-  try { res_.ok(res, await svc.getPerfil(req.user.id)); }
-  catch (err) { next(err); }
-}
-
-async function updatePerfil(req, res, next) {
-  try {
-    const perfil = await svc.updatePerfil(req.user.id, req.body);
-    res_.ok(res, perfil, 'Perfil atualizado');
-  } catch (err) { next(err); }
-}
-
-async function getDashboard(req, res, next) {
-  try { res_.ok(res, await svc.getDashboard(req.user.id)); }
-  catch (err) { next(err); }
-}
-
-async function getCapacidades(req, res, next) {
-  try { res_.ok(res, await svc.getCapacidades(req.user.id)); }
-  catch (err) { next(err); }
-}
-
-async function upsertCapacidade(req, res, next) {
-  try {
-    await svc.upsertCapacidade(req.user.id, req.body);
-    res_.ok(res, null, 'Capacidade atualizada');
-  } catch (err) { next(err); }
-}
-
-async function deleteCapacidade(req, res, next) {
-  try {
-    await svc.deleteCapacidade(req.user.id, req.params.id);
-    res_.ok(res, null, 'Removido');
-  } catch (err) { next(err); }
-}
+const getPerfil         = wrap(async (req, res) => { res_.ok(res, await svc.getPerfil(req.user.id)); });
+const updatePerfil      = wrap(async (req, res) => { res_.ok(res, await svc.updatePerfil(req.user.id, req.body), 'Perfil atualizado'); });
+const getDashboard      = wrap(async (req, res) => { res_.ok(res, await svc.getDashboard(req.user.id)); });
+const getCapacidades    = wrap(async (req, res) => { res_.ok(res, await svc.getCapacidades(req.user.id)); });
+const upsertCapacidade  = wrap(async (req, res) => { await svc.upsertCapacidade(req.user.id, req.body); res_.ok(res, null, 'Capacidade atualizada'); });
+const deleteCapacidade  = wrap(async (req, res) => { await svc.deleteCapacidade(req.user.id, req.params.id); res_.ok(res, null, 'Removido'); });
 
 module.exports = { getPerfil, updatePerfil, getDashboard, getCapacidades, upsertCapacidade, deleteCapacidade };

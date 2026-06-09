@@ -23,6 +23,22 @@ function generateTokens(user) {
   return { access, refresh };
 }
 
+async function createUserInTransaction(conn, tipo, emailAddr, senha) {
+  const hash = await bcrypt.hash(senha, 10);
+  const token = crypto.randomBytes(32).toString('hex');
+
+  const r = await conn.execute(
+    `INSERT INTO usuario (tipo, email, senha_hash, token_verificacao, token_expira_em) VALUES (?, ?, ?, ?, DATE_ADD(NOW(), INTERVAL 24 HOUR))`,
+    [tipo, emailAddr, hash, token]
+  );
+  return { userId: r[0].insertId, token };
+}
+
+async function sendVerificationEmail(name, emailAddr, token) {
+  const link = `${env.app.url}/api/auth/verificar/${token}`;
+  const html = email.verificacaoTemplate(name, link);
+  await email.send(emailAddr, 'Confirme seu email - AgendaTech', html);
+}
 
 async function registerCliente(data) {
   const { nome, email: emailAddr, senha, cpf, telefone, data_nascimento } = data;
@@ -35,37 +51,21 @@ async function registerCliente(data) {
   const exists = await db.queryOne('SELECT id FROM usuario WHERE email = ?', [emailAddr]);
   if (exists) throw new AppError(409, 'Email já cadastrado');
 
-  const conn = await db.beginTransaction();
-  try {
-    const hash = await bcrypt.hash(senha, 10);
-    const token = crypto.randomBytes(32).toString('hex');
-
-    const r = await conn.execute(
-      `INSERT INTO usuario (tipo, email, senha_hash, token_verificacao, token_expira_em) VALUES ('cliente', ?, ?, ?, DATE_ADD(NOW(), INTERVAL 24 HOUR))`,
-      [emailAddr, hash, token]
-    );
-    const userId = r[0].insertId;
+  const { userId, token } = await db.withTransaction(async (conn) => {
+    const result = await createUserInTransaction(conn, 'cliente', emailAddr, senha);
 
     await conn.execute(
       `INSERT INTO cliente (id, nome, cpf, telefone, data_nascimento, score) VALUES (?, ?, ?, ?, ?, 100.00)`,
-      [userId, nome, cpf || null, telefone || null, data_nascimento || null]
+      [result.userId, nome, cpf || null, telefone || null, data_nascimento || null]
     );
 
-    await conn.commit();
-    conn.release();
+    return result;
+  });
 
-    const link = `${env.app.url}/api/auth/verificar/${token}`;
-    const html = email.verificacaoTemplate(nome, link);
-    await email.send(emailAddr, 'Confirme seu email - AgendaTech', html);
+  await sendVerificationEmail(nome, emailAddr, token);
 
-    const user = { id: userId, tipo: 'cliente', email: emailAddr };
-    return { user, tokens: generateTokens(user), emailVerificado: false };
-  } catch (err) {
-    await conn.rollback();
-    conn.release();
-    console.error('Erro no registro de cliente:', err);
-    throw new AppError(500, 'Erro ao registrar usuário');
-  }
+  const user = { id: userId, tipo: 'cliente', email: emailAddr };
+  return { user, tokens: generateTokens(user), emailVerificado: false };
 }
 
 
@@ -82,43 +82,28 @@ async function registerEmpresa(data) {
   const exists = await db.queryOne('SELECT id FROM usuario WHERE email = ?', [emailAddr]);
   if (exists) throw new AppError(409, 'Email já cadastrado');
 
-  const conn = await db.beginTransaction();
-  try {
-    const hash = await bcrypt.hash(senha, 10);
-    const token = crypto.randomBytes(32).toString('hex');
-
-    const r = await conn.execute(
-      `INSERT INTO usuario (tipo, email, senha_hash, token_verificacao, token_expira_em) VALUES ('empresa', ?, ?, ?, DATE_ADD(NOW(), INTERVAL 24 HOUR))`,
-      [emailAddr, hash, token]
-    );
-    const userId = r[0].insertId;
+  const { userId, token } = await db.withTransaction(async (conn) => {
+    const result = await createUserInTransaction(conn, 'empresa', emailAddr, senha);
 
     await conn.execute(
       `INSERT INTO empresa (id, cnpj, razao_social, nome_fantasia, telefone, cep) VALUES (?, ?, ?, ?, ?, ?)`,
-      [userId, cnpj, razao_social, nome_fantasia, telefone || null, cep || null]
+      [result.userId, cnpj, razao_social, nome_fantasia, telefone || null, cep || null]
     );
 
     await conn.execute(
       `INSERT INTO empresaProfile (empresa_id, ativo) VALUES (?, TRUE)`,
-      [userId]
+      [result.userId]
     );
 
-    await conn.commit();
-    conn.release();
+    return result;
+  });
 
-    const link = `${env.app.url}/api/auth/verificar/${token}`;
-    const html = email.verificacaoTemplate(nome_fantasia, link);
-    await email.send(emailAddr, 'Confirme seu email - AgendaTech', html);
+  await sendVerificationEmail(nome_fantasia, emailAddr, token);
 
-    const user = { id: userId, tipo: 'empresa', email: emailAddr };
-    return { user, tokens: generateTokens(user), emailVerificado: false };
-  } catch (err) {
-    await conn.rollback();
-    conn.release();
-    console.error('Erro no registro de empresa:', err);
-    throw new AppError(500, 'Erro ao registrar empresa');
-  }
+  const user = { id: userId, tipo: 'empresa', email: emailAddr };
+  return { user, tokens: generateTokens(user), emailVerificado: false };
 }
+
 async function verificarEmail(token) {
   const user = await db.queryOne(
     `SELECT id, email, email_verificado FROM usuario WHERE token_verificacao = ?`,
@@ -135,6 +120,7 @@ async function verificarEmail(token) {
 
   return { message: 'Email verificado com sucesso' };
 }
+
 async function reenviarVerificacao(emailAddr) {
   const user = await db.queryOne(
     `SELECT id, tipo, email, email_verificado FROM usuario WHERE email = ?`,
@@ -153,9 +139,7 @@ async function reenviarVerificacao(emailAddr) {
     ? (await db.queryOne(`SELECT nome_fantasia FROM empresa WHERE id = ?`, [user.id]))?.nome_fantasia
     : (await db.queryOne(`SELECT nome FROM cliente WHERE id = ?`, [user.id]))?.nome;
 
-  const link = `${env.app.url}/api/auth/verificar/${token}`;
-  const html = email.verificacaoTemplate(nome || 'Usuário', link);
-  await email.send(emailAddr, 'Confirme seu email - AgendaTech', html);
+  await sendVerificationEmail(nome || 'Usuário', emailAddr, token);
 
   return { message: 'Email de verificação reenviado' };
 }
@@ -165,7 +149,6 @@ async function login(documento, senha) {
   let user;
 
   if (digits.length === 11) {
-    // CPF → cliente
     user = await db.queryOne(
       `SELECT u.id, u.tipo, u.email, u.senha_hash, u.ativo, u.email_verificado, c.cpf AS documento
        FROM usuario u
@@ -174,7 +157,6 @@ async function login(documento, senha) {
       [digits]
     );
   } else if (digits.length === 14) {
-    // CNPJ → empresa
     user = await db.queryOne(
       `SELECT u.id, u.tipo, u.email, u.senha_hash, u.ativo, u.email_verificado, e.cnpj AS documento
        FROM usuario u

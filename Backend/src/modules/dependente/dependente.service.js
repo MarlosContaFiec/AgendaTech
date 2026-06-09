@@ -1,6 +1,7 @@
 'use strict';
 const db = require('../../config/database');
 const AppError = require('../../utils/AppError');
+const { buildUpdateSets, ensureAffected } = require('../../utils/queryHelpers');
 
 async function list(clienteId) {
   return db.query(
@@ -21,16 +22,14 @@ async function create(clienteId, data) {
 }
 
 async function update(clienteId, id, data) {
-  const sets = [], vals = [];
-  if (data.nome !== undefined) { sets.push('nome = ?'); vals.push(data.nome); }
-  if (data.idade !== undefined) { sets.push('idade = ?'); vals.push(data.idade); }
+  const { sets, vals } = buildUpdateSets(data, ['nome', 'idade']);
   if (!sets.length) throw new AppError(400, 'Nenhum campo para atualizar');
 
   const r = await db.execute(
     `UPDATE dependente SET ${sets.join(', ')} WHERE id = ? AND cliente_id = ?`,
     [...vals, id, clienteId]
   );
-  if (r.affectedRows === 0) throw new AppError(404, 'Dependente não encontrado');
+  ensureAffected(r, 'Dependente');
   return db.queryOne(`SELECT * FROM dependente WHERE id = ?`, [id]);
 }
 
@@ -39,7 +38,7 @@ async function remove(clienteId, id) {
     `DELETE FROM dependente WHERE id = ? AND cliente_id = ?`,
     [id, clienteId]
   );
-  if (r.affectedRows === 0) throw new AppError(404, 'Dependente não encontrado');
+  ensureAffected(r, 'Dependente');
 }
 
 module.exports = { list, create, update, remove };

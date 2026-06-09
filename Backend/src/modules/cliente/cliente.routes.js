@@ -2,6 +2,7 @@
 const db = require('../../config/database');
 const AppError = require('../../utils/AppError');
 const res_ = require('../../utils/response');
+const wrap = require('../../utils/wrapAsync');
 const router = require('express').Router();
 const { requireCliente } = require('../../middlewares/auth');
 const { validate, schemas } = require('../../middlewares/validate');
@@ -60,19 +61,9 @@ async function getCalendario(clienteId) {
   );
 }
 
-router.get('/perfil', requireCliente, async (req, res, next) => {
-  try { res_.ok(res, await getPerfil(req.user.id)); } catch (e) { next(e); }
-});
+router.get('/perfil', requireCliente, wrap(async (req, res) => { res_.ok(res, await getPerfil(req.user.id)); }));
+router.put('/perfil', requireCliente, validate(schemas.updateClientePerfil), wrap(async (req, res) => { res_.ok(res, await updatePerfil(req.user.id, req.body), 'Perfil atualizado'); }));
+router.get('/score', requireCliente, wrap(async (req, res) => { res_.ok(res, await getScoreLog(req.user.id)); }));
+router.get('/calendario', requireCliente, wrap(async (req, res) => { res_.ok(res, await getCalendario(req.user.id)); }));
 
-router.put('/perfil', requireCliente, validate(schemas.updateClientePerfil), async (req, res, next) => {
-  try { res_.ok(res, await updatePerfil(req.user.id, req.body), 'Perfil atualizado'); } catch (e) { next(e); }
-});
-
-router.get('/score', requireCliente, async (req, res, next) => {
-  try { res_.ok(res, await getScoreLog(req.user.id)); } catch (e) { next(e); }
-});
-
-router.get('/calendario', requireCliente, async (req, res, next) => {
-  try { res_.ok(res, await getCalendario(req.user.id)); } catch (e) { next(e); }
-});
 module.exports = router;

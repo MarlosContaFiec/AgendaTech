@@ -48,4 +48,23 @@ async function beginTransaction() {
   return conn;
 }
 
-module.exports = { pool, query, queryRaw, queryOne, execute, beginTransaction };
+/**
+ * Executes `fn(conn)` inside a transaction, committing on success
+ * and rolling back + releasing on failure.
+ * Returns whatever `fn` returns.
+ */
+async function withTransaction(fn) {
+  const conn = await beginTransaction();
+  try {
+    const result = await fn(conn);
+    await conn.commit();
+    conn.release();
+    return result;
+  } catch (err) {
+    await conn.rollback();
+    conn.release();
+    throw err;
+  }
+}
+
+module.exports = { pool, query, queryRaw, queryOne, execute, beginTransaction, withTransaction };

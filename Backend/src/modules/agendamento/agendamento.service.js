@@ -3,6 +3,9 @@ const db = require('../../config/database');
 const AppError = require('../../utils/AppError');
 const cal = require('../../utils/calendarEngine');
 const tpl = require('../../utils/templateEngine');
+const { toMinutes, fromMinutes } = require('../../utils/timeHelpers');
+const { sendAutoMessage } = require('../../utils/messageHelpers');
+const { parsePagination } = require('../../utils/pagination');
 
 async function enviarNotificacaoAutomatica(empresaId, clienteId, agendamentoId, tipo) {
   try {
@@ -27,11 +30,7 @@ async function enviarNotificacaoAutomatica(empresaId, clienteId, agendamentoId, 
 
     const msg = tpl.render(regra.mensagem_template, tplData);
 
-    await db.execute(
-      `INSERT INTO mensagem (empresa_id, cliente_id, tipo, mensagem, automatica, enviado_por)
-       VALUES (?, ?, ?, ?, TRUE, 'empresa')`,
-      [empresaId, clienteId, tipo, msg]
-    );
+    await sendAutoMessage({ empresaId, clienteId, tipo, mensagem: msg });
 
     await db.execute(
       `INSERT INTO notificacao_log (empresa_id, cliente_id, agendamento_id, regra_id, tipo, mensagem)
@@ -54,7 +53,7 @@ async function enviarNotificacaoAutomatica(empresaId, clienteId, agendamentoId, 
     console.error('[NOTIF] Falha ao enviar notificação automática:', err.message);
   }
 }
-/** Gera slots de horário para um serviço em uma data */
+
 async function getSlots(empresaId, servicoId, dateRaw) {
   const date = String(dateRaw).slice(0, 10);
 
@@ -144,15 +143,6 @@ async function getSlots(empresaId, servicoId, dateRaw) {
   return { disponivel: true, tags, slots };
 }
 
-function toMinutes(timeStr) {
-  const [h, m] = timeStr.split(':').map(Number);
-  return h * 60 + m;
-}
-
-function fromMinutes(mins) {
-  return `${String(Math.floor(mins / 60)).padStart(2, '0')}:${String(mins % 60).padStart(2, '0')}`;
-}
-
 async function create(clienteId, data) {
   const { servico_id, empresa_id, hora_inicio, notas } = data;
   const data_agendamento = String(data.data_agendamento).slice(0, 10);
@@ -200,16 +190,13 @@ async function create(clienteId, data) {
 
 async function listEmpresa(empresaId, filters = {}) {
   const { status, data_inicio, data_fim } = filters;
-  const pagina = parseInt(filters.pagina) || 1;
-  const limite = parseInt(filters.limite) || 20;
+  const { limite, offset } = parsePagination(filters);
   const where = ['a.empresa_id = ?'];
   const params = [empresaId];
 
   if (status) { where.push('a.status_agendamento = ?'); params.push(status); }
   if (data_inicio) { where.push('a.data_agendamento >= ?'); params.push(data_inicio); }
   if (data_fim) { where.push('a.data_agendamento <= ?'); params.push(data_fim); }
-
-  const offset = (pagina - 1) * limite;
 
   return db.queryRaw(
     `SELECT a.*, c.nome AS cliente_nome, c.score AS cliente_score,
@@ -226,14 +213,11 @@ async function listEmpresa(empresaId, filters = {}) {
 
 async function listCliente(clienteId, filters = {}) {
   const { status } = filters;
-  const pagina = parseInt(filters.pagina) || 1;
-  const limite = parseInt(filters.limite) || 20;
+  const { limite, offset } = parsePagination(filters);
   const where = ['a.cliente_id = ?'];
   const params = [clienteId];
 
   if (status) { where.push('a.status_agendamento = ?'); params.push(status); }
-
-  const offset = (pagina - 1) * limite;
 
   return db.queryRaw(
     `SELECT a.*, s.nome AS servico_nome, e.nome_fantasia AS empresa_nome,
@@ -419,43 +403,6 @@ async function aplicarScore(clienteId, agendamentoId, variacao, motivo) {
      VALUES (?, ?, ?, ?, ?)`,
     [clienteId, agendamentoId, variacao, novoScore, motivo]
   );
-}
-
-async function enviarNotificacaoAutomatica(empresaId, clienteId, agendamentoId, tipo) {
-  try {
-    const regra = await db.queryOne(
-      `SELECT re.*, e.nome_fantasia FROM regra_empresa re JOIN empresa e ON e.id=re.empresa_id
-       WHERE re.empresa_id=? AND re.tipo='notificacao' AND re.tipo_notificacao=? AND re.ativo=1 LIMIT 1`,
-      [empresaId, tipo]
-    );
-    if (!regra?.mensagem_template) return;
-
-    const ag = await db.queryOne(`SELECT * FROM agendamento WHERE id=?`, [agendamentoId]);
-    const cliente = await db.queryOne(`SELECT nome FROM cliente WHERE id=?`, [clienteId]);
-    const servico = await db.queryOne(`SELECT nome FROM servico WHERE id=?`, [ag?.servico_id]);
-
-    const msg = tpl.render(regra.mensagem_template, {
-      nome_cliente: cliente?.nome,
-      nome_empresa: regra.nome_fantasia,
-      data: ag?.data_agendamento,
-      hora: ag?.hora_inicio,
-      servico: servico?.nome,
-    });
-
-    await db.execute(
-      `INSERT INTO mensagem (empresa_id, cliente_id, tipo, mensagem, automatica, enviado_por)
-       VALUES (?, ?, ?, ?, TRUE, 'empresa')`,
-      [empresaId, clienteId, tipo, msg]
-    );
-
-    await db.execute(
-      `INSERT INTO notificacao_log (empresa_id, cliente_id, agendamento_id, regra_id, tipo, mensagem)
-       VALUES (?, ?, ?, ?, ?, ?)`,
-      [empresaId, clienteId, agendamentoId, regra.id, tipo, msg]
-    );
-  } catch (err) {
-    console.error('[NOTIF] Falha ao enviar notificação automática:', err.message);
-  }
 }
 
 module.exports = { getSlots, create, listEmpresa, listCliente, getById, aceitar, recusar, concluir, cancelarCliente, reagendar, aplicarScore };

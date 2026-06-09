@@ -1,25 +1,12 @@
 'use strict';
 const svc = require('./fila.service');
 const res_ = require('../../utils/response');
+const wrap = require('../../utils/wrapAsync');
 
-async function entrar(req, res, next) {
-  try { res_.created(res, await svc.entrar(req.user.id, req.body)); } catch (e) { next(e); }
-}
-
-async function sair(req, res, next) {
-  try { await svc.sair(req.user.id, req.params.id); res_.ok(res, null, 'Saiu da fila'); } catch (e) { next(e); }
-}
-
-async function listCliente(req, res, next) {
-  try { res_.ok(res, await svc.listCliente(req.user.id)); } catch (e) { next(e); }
-}
-
-async function listEmpresa(req, res, next) {
-  try { res_.ok(res, await svc.listEmpresa(req.user.id, req.query)); } catch (e) { next(e); }
-}
-
-async function converter(req, res, next) {
-  try { res_.ok(res, await svc.converter(req.user.id, req.params.id)); } catch (e) { next(e); }
-}
+const entrar      = wrap(async (req, res) => { res_.created(res, await svc.entrar(req.user.id, req.body)); });
+const sair        = wrap(async (req, res) => { await svc.sair(req.user.id, req.params.id); res_.ok(res, null, 'Saiu da fila'); });
+const listCliente = wrap(async (req, res) => { res_.ok(res, await svc.listCliente(req.user.id)); });
+const listEmpresa = wrap(async (req, res) => { res_.ok(res, await svc.listEmpresa(req.user.id, req.query)); });
+const converter   = wrap(async (req, res) => { res_.ok(res, await svc.converter(req.user.id, req.params.id)); });
 
 module.exports = { entrar, sair, listCliente, listEmpresa, converter };
