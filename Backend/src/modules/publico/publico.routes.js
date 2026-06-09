@@ -40,8 +40,8 @@ async function listarEmpresas(filters = {}) {
      WHERE ${where.join(' AND ')}
      GROUP BY e.id
      ORDER BY total_agendamentos_mes DESC, e.id DESC
-     LIMIT ${limite} OFFSET ${offset}`,
-    params
+     LIMIT ? OFFSET ?`,
+    [...params, limite, offset]
   );
 }
 

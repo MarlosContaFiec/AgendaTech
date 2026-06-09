@@ -57,8 +57,8 @@ async function listEmpresa(empresaId, filters = {}) {
      JOIN servico s ON s.id = a.servico_id
      WHERE ${where.join(' AND ')}
      ORDER BY av.id DESC
-     LIMIT ${limite} OFFSET ${offset}`,
-    params
+     LIMIT ? OFFSET ?`,
+    [...params, limite, offset]
   );
 }
 

@@ -40,8 +40,8 @@ async function listEmpresaDocs(empresaId, filters = {}) {
      WHERE ${where.join(' AND ')}
      GROUP BY d.id
      ORDER BY d.criado_em DESC
-     LIMIT ${limite} OFFSET ${offset}`,
-    params
+     LIMIT ? OFFSET ?`,
+    [...params, limite, offset]
   );
 }
 
