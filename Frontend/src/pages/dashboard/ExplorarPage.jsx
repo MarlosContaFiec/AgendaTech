@@ -1,104 +1,135 @@
-import React, { useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { SectionHeader, EmptyState } from '../../components/shared'
-import { useCrudList } from '../../hooks/useCrudList'
-import { getCompanies, getCities, getFeaturedCompanies, getNiches } from '../../services/public'
-import { Button, Input, Select, Badge } from '../../components/ui'
-import { currency } from '../../utils/formatters'
+import { getFeaturedCompanies, getCompanies, getNiches, getCities } from '../../services/public'
+import { Button, Input, Select, Badge, Spinner } from '../../components/ui'
+import { FiSearch, FiFilter, FiStar, FiMapPin } from 'react-icons/fi'
 
+function CompanyCard({ company }) {
+  return (
+    <div className="card group transition hover:-translate-y-1 hover:border-purple/40">
+      <div className="flex items-start gap-4">
+        <div className="grid h-14 w-14 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-purple to-cyan text-lg font-heading text-white">
+          {(company.nome_fantasia || 'E').charAt(0)}
+        </div>
+        <div className="flex-1 min-w-0">
+          <h3 className="text-lg font-semibold text-foreground truncate">{company.nome_fantasia || 'Empresa'}</h3>
+          {company.descricao && <p className="mt-1 text-sm text-muted line-clamp-2">{company.descricao}</p>}
+          <div className="mt-2 flex flex-wrap gap-2">
+            {company.nicho && <Badge>{company.nicho}</Badge>}
+            {company.sub_nicho && <Badge variant="info">{company.sub_nicho}</Badge>}
+          </div>
+          <div className="mt-2 flex items-center gap-4 text-xs text-muted">
+            {company.cidade && (
+              <span className="flex items-center gap-1"><FiMapPin size={12} /> {company.cidade}</span>
+            )}
+            {company.media_avaliacao > 0 && (
+              <span className="flex items-center gap-1 text-yellow-400"><FiStar size={12} /> {Number(company.media_avaliacao).toFixed(1)}</span>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
 
 export default function ExplorarPage() {
-  const [busca, setBusca] = useState('')
+  const [featured, setFeatured] = useState([])
+  const [results, setResults] = useState([])
+  const [niches, setNiches] = useState([])
+  const [cities, setCities] = useState([])
+  const [search, setSearch] = useState('')
   const [nicho, setNicho] = useState('')
   const [cidade, setCidade] = useState('')
-  const [estado, setEstado] = useState('')
+  const [loading, setLoading] = useState(true)
+  const [searched, setSearched] = useState(false)
+  const [showFilters, setShowFilters] = useState(false)
 
-  const { items: featured } = useCrudList('/api/empresas/destaques', [])
-  const { items: niches } = useCrudList('/api/empresas/nichos', [])
-  const { items: cities } = useCrudList('/api/empresas/cidades', [])
-  const query = useMemo(() => {
-    const params = new URLSearchParams()
-    if (busca) params.set('busca', busca)
-    if (nicho) params.set('nicho', nicho)
-    if (cidade) params.set('cidade', cidade)
-    if (estado) params.set('estado', estado)
-    params.set('pagina', '1')
-    params.set('limite', '20')
-    return `?${params.toString()}`
-  }, [busca, nicho, cidade, estado])
+  useEffect(() => {
+    Promise.all([
+      getFeaturedCompanies(),
+      getNiches(),
+      getCities(),
+    ]).then(([featRes, nichRes, cityRes]) => {
+      const featData = featRes?.data || []
+      setFeatured(Array.isArray(featData) ? featData : featData?.items || [])
+      const nichData = nichRes?.data || []
+      setNiches(Array.isArray(nichData) ? nichData : [])
+      const cityData = cityRes?.data || []
+      setCities(Array.isArray(cityData) ? cityData : [])
+      setLoading(false)
+    })
+  }, [])
 
-  const { items: companies } = useCrudList(`/api/empresas${query}`, [])
+  async function handleSearch(e) {
+    e?.preventDefault()
+    setLoading(true)
+    setSearched(true)
+    const params = []
+    if (search.trim()) params.push(`q=${encodeURIComponent(search.trim())}`)
+    if (nicho) params.push(`nicho=${encodeURIComponent(nicho)}`)
+    if (cidade) params.push(`cidade=${encodeURIComponent(cidade)}`)
+    const query = params.length ? `?${params.join('&')}` : ''
+    const res = await getCompanies(query)
+    const data = res?.data || []
+    setResults(Array.isArray(data) ? data : data?.items || data?.rows || [])
+    setLoading(false)
+  }
 
-  const results = companies?.length ? companies : [
-    { id: 1, nome_fantasia: 'Barbearia Estilo', nicho: 'beleza', sub_nicho: 'barbearia', cidade: 'Indaiatuba', estado: 'SP', media_avaliacao: 4.8, agendamentos_24h: 12 },
-    { id: 2, nome_fantasia: 'Studio Glam', nicho: 'beleza', sub_nicho: 'salao', cidade: 'Campinas', estado: 'SP', media_avaliacao: 4.9, agendamentos_24h: 8 },
-    { id: 3, nome_fantasia: 'Ateliê Zen', nicho: 'bem-estar', sub_nicho: 'massagem', cidade: 'Indaiatuba', estado: 'SP', media_avaliacao: 4.7, agendamentos_24h: 5 },
-  ]
+  const displayList = searched ? results : featured
 
   return (
-    <div className="min-h-screen bg-[#0d1117] text-white">
-      <SectionHeader title="Explorar" subtitle="Busque empresas, nichos e cidades" />
-      <div className="panel space-y-4 border border-[#232838] bg-[#131720] rounded-2xl shadow-[0_0_25px_rgba(0,0,0,0.25)]">
-        <Input 
-        className="bg-[#0f141c] border border-[#2a3142] text-white placeholder:text-gray-500 rounded-xl"
-        label="Busca" 
-        placeholder="Empresa, serviço..." 
-        value={busca} 
-        onChange={(e) => setBusca(e.target.value)} />
-        <div className="form-grid three">
-          <Select 
-          className="bg-[#0f141c] border border-[#2a3142] text-white rounded-xl"
-          label="Nicho" 
-          value={nicho} 
-          onChange={(e) => setNicho(e.target.value)}>
-            <option value="">Todos</option>
-            {(niches || []).map((item) => <option key={`${item.nicho}-${item.sub_nicho}`} value={item.nicho}>{item.nicho} / {item.sub_nicho}</option>)}
-          </Select>
-          <Select 
-          className="bg-[#0f141c] border border-[#2a3142] text-white rounded-xl"
-          label="Cidade" 
-          value={cidade} 
-          onChange={(e) => setCidade(e.target.value)}>
-            <option value="">Todas</option>
-            {(cities || []).map((item) => <option key={`${item.cidade}-${item.estado}`} value={item.cidade}>{item.cidade} / {item.estado}</option>)}
-          </Select>
-          <Button className="self-end bg-gradient-to-r from-violet-600 to-indigo-600 hover:scale-[1.02] transition rounded-xl border-0">Buscar</Button>
-        </div>
-      </div>
+    <div className="space-y-5 animate-fade-up">
+      <SectionHeader title="Explorar" subtitle="Encontre empresas e agende serviços" />
 
-      <div className="grid-cards three">
-        {(featured?.length ? featured : results.slice(0, 3)).map((item) => (
-          <div 
-          key={item.id} 
-          className="card hover:-translate-y-1 transition-all duration-300 bg-[#131720] border border-[#232838] rounded-2xl hover:border-violet-500/40 hover:shadow-[0_0_30px_rgba(139,92,246,0.18)]">
-            <div className="mx-auto mb-3 grid h-14 w-14 place-items-center rounded-[14px] bg-gradient-to-br from-violet-500 to-indigo-600 text-xl font-bold text-white">
-              {String(item.nome_fantasia || item.nome || 'A').charAt(0)}
-            </div>
-            <div className="text-center">
-              <div className="font-heading text-4xl text-foreground">{item.nome_fantasia || item.nome}</div>
-              <div className="mt-2 flex flex-wrap justify-center gap-2">
-                <Badge>{item.nicho || 'nicho'}</Badge>
-                <Badge variant="info">{item.cidade || 'cidade'}</Badge>
-              </div>
-              <div className="mt-3 text-sm text-muted">★ {Number(item.media_avaliacao || 0).toFixed(1)} · {item.agendamentos_24h || item.total_agendamentos_mes || 0} agendamentos</div>
-            </div>
+      <form onSubmit={handleSearch} className="panel">
+        <div className="flex gap-3">
+          <div className="relative flex-1">
+            <FiSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-muted" size={18} />
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Buscar por nome ou palavra-chave..."
+              className="input w-full pl-11"
+            />
           </div>
-        ))}
-      </div>
-
-      <div className="panel bg-[#131720] border border-[#232838] rounded-2xl">
-        <h3 className="mb-4 text-3xl text-white">Resultados</h3>
-        <div className="list-stack">
-          {results.map((item) => (
-            <div key={item.id} className="list-item flex flex-wrap items-center justify-between gap-4 bg-[#0f141c] border border-[#232838] rounded-xl p-4 hover:border-violet-500/30 transition">
-              <div>
-                <div className="text-foreground">{item.nome_fantasia}</div>
-                <div className="text-sm text-muted">{item.nicho} · {item.sub_nicho} · {item.cidade} / {item.estado}</div>
-              </div>
-              <div className="text-right text-sm text-muted">★ {Number(item.media_avaliacao || 0).toFixed(1)}</div>
-            </div>
-          ))}
+          <Button type="button" variant="ghost" onClick={() => setShowFilters((v) => !v)}>
+            <FiFilter size={16} /> Filtros
+          </Button>
+          <Button type="submit">Buscar</Button>
         </div>
-      </div>
+        {showFilters && (
+          <div className="mt-4 grid gap-3 sm:grid-cols-2 animate-fade-up">
+            <Select label="Nicho" value={nicho} onChange={(e) => setNicho(e.target.value)}>
+              <option value="">Todos os nichos</option>
+              {niches.map((n) => <option key={typeof n === 'string' ? n : n.nicho} value={typeof n === 'string' ? n : n.nicho}>{typeof n === 'string' ? n : n.nicho}</option>)}
+            </Select>
+            <Select label="Cidade" value={cidade} onChange={(e) => setCidade(e.target.value)}>
+              <option value="">Todas as cidades</option>
+              {cities.map((c) => <option key={typeof c === 'string' ? c : c.cidade} value={typeof c === 'string' ? c : c.cidade}>{typeof c === 'string' ? c : c.cidade}</option>)}
+            </Select>
+          </div>
+        )}
+      </form>
+
+      {loading ? (
+        <div className="text-center py-12"><Spinner size={32} /></div>
+      ) : !displayList.length ? (
+        <EmptyState
+          title={searched ? 'Nenhuma empresa encontrada' : 'Nenhuma empresa em destaque'}
+          description={searched ? 'Tente outros termos ou remova os filtros.' : 'As empresas com mais agendamentos aparecerão aqui.'}
+          icon="🔍"
+        />
+      ) : (
+        <>
+          <div className="text-sm text-muted">
+            {searched ? `${results.length} resultado${results.length !== 1 ? 's' : ''}` : 'Empresas em destaque nas últimas 24h'}
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {displayList.map((c) => <CompanyCard key={c.id} company={c} />)}
+          </div>
+        </>
+      )}
     </div>
   )
 }

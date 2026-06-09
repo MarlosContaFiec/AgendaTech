@@ -131,5 +131,14 @@
   .sidebar-mobile { display: flex; }
   .page-inner { padding: 1rem 1rem 1.5rem; }
   .dashboard-toolbar { flex-direction: column; align-items: stretch; }
-  .form-grid.two, .form-grid.three { grid-template-columns: 1fr; }
+  .form-grid.two, .form-grid.three, .form-grid.four { grid-template-columns: 1fr; }
+  .grid-cards.two, .grid-cards.three { grid-template-columns: 1fr; }
+  .kpi-row { grid-template-columns: repeat(2, 1fr); }
+  .section-title { font-size: 2rem; }
+  .auth-card { padding: 1.5rem 1.25rem; }
+}
+@media (max-width: 480px) {
+  .kpi-row { grid-template-columns: 1fr; }
+  .section-title { font-size: 1.6rem; }
+  .stat-value { font-size: 2rem; }
 }
