@@ -206,8 +206,8 @@ async function listEmpresa(empresaId, filters = {}) {
      JOIN servico s ON s.id = a.servico_id
      WHERE ${where.join(' AND ')}
      ORDER BY a.data_agendamento DESC, a.hora_inicio DESC
-     LIMIT ${limite} OFFSET ${offset}`,
-    params
+     LIMIT ? OFFSET ?`,
+    [...params, limite, offset]
   );
 }
 
@@ -227,8 +227,8 @@ async function listCliente(clienteId, filters = {}) {
      JOIN empresa e ON e.id = a.empresa_id
      WHERE ${where.join(' AND ')}
      ORDER BY a.data_agendamento DESC, a.hora_inicio DESC
-     LIMIT ${limite} OFFSET ${offset}`,
-    params
+     LIMIT ? OFFSET ?`,
+    [...params, limite, offset]
   );
 }
 

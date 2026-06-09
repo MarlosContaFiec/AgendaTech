@@ -36,8 +36,8 @@ async function listMensagens(empresaId, clienteId, pagina = 1, limite = 50) {
      FROM mensagem m
      WHERE m.empresa_id = ? AND m.cliente_id = ?
      ORDER BY m.data_envio ASC
-     LIMIT ${l} OFFSET ${offset}`,
-    [empresaId, clienteId]
+     LIMIT ? OFFSET ?`,
+    [empresaId, clienteId, l, offset]
   );
 }
 

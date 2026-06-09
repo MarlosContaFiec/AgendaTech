@@ -7,16 +7,16 @@ services:
     container_name: agendamento_mysql
     restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: root@123
-      MYSQL_DATABASE: agendamento
-      MYSQL_USER: agendamento
-      MYSQL_PASSWORD: agendamento@123
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Set MYSQL_ROOT_PASSWORD in .env}
+      MYSQL_DATABASE: ${DB_NAME:-agendatech_bd}
+      MYSQL_USER: ${DB_USER:-agendamento}
+      MYSQL_PASSWORD: ${DB_PASS:?Set DB_PASS in .env}
     volumes:
       - mysql_data:/var/lib/mysql
     networks:
       - agendamento_net
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "agendamento", "-pagendamento@123"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -37,11 +37,11 @@ services:
     environment:
       DB_HOST: mysql
       DB_PORT: 3306
-      DB_NAME: agendamento
-      DB_USER: agendamento
-      DB_PASS: agendamento@123
-      JWT_SECRET: ${JWT_SECRET:-dev_secret_super_longo_e_seguro_aqui_2024}
-      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-dev_refresh_secret_diferente}
+      DB_NAME: ${DB_NAME:-agendatech_bd}
+      DB_USER: ${DB_USER:-agendamento}
+      DB_PASS: ${DB_PASS:?Set DB_PASS in .env}
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in .env}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:?Set JWT_REFRESH_SECRET in .env}
       JWT_EXPIRES_IN: 15m
       JWT_REFRESH_EXPIRES_IN: 7d
       PORT: 3000
@@ -62,15 +62,17 @@ services:
       timeout: 10s
       retries: 3
 
-  # ─── Adminer (UI para banco) ───────────────────────────────────
+  # ─── Adminer (UI para banco — dev only, localhost-bound) ────────
   adminer:
     image: adminer:4
     container_name: agendamento_adminer
     restart: unless-stopped
+    profiles:
+      - dev
     depends_on:
       - mysql
     ports:
-      - "8080:8080"
+      - "127.0.0.1:8080:8080"
     networks:
       - agendamento_net
     environment:

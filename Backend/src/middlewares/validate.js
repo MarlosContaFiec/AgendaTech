@@ -10,12 +10,8 @@ const dateOnly = Joi.string().custom((val, helpers) => {
 
 function validate(schema) {
   return (req, res, next) => {
-    console.log('[VALIDATE] Body recebido:', JSON.stringify(req.body));
-    console.log('[VALIDATE] Content-Type:', req.headers['content-type']);
-
     const { error, value } = schema.validate(req.body, { abortEarly: false, stripUnknown: true });
     if (error) {
-      console.log('[VALIDATE] Erros Joi:', error.details.map(d => d.message));
       return res_.badRequest(res, 'Dados inválidos', error.details.map(d => d.message));
     }
     req.body = value;
