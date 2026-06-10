@@ -1,4 +1,0 @@
-import React from 'react';
-export default function Select({label,options=[],error,className='',...props}){
-  return(<div className="space-y-1.5">{label&&<label className="block text-sm font-medium text-[var(--text-secondary)]">{label}</label>}<select className={'w-full bg-[var(--bg-surface)] border rounded-xl px-4 py-2.5 text-[var(--text-primary)] transition-colors focus:outline-none focus:border-[var(--accent)] appearance-none '+(error?'border-[var(--error)]':'border-[var(--border)]')+' '+className} {...props}>{options.map(function(o){return <option key={o.value} value={o.value}>{o.label}</option>})}</select>{error&&<p className="text-xs text-[var(--error)]">{error}</p>}</div>);
-}
