@@ -1,7 +1,7 @@
 'use strict';
 const express      = require('express');
 const helmet       = require('helmet');
-const cors=require('cors');
+const cors         = require('cors');
 const morgan       = require('morgan');
 const rateLimit    = require('express-rate-limit');
 const path         = require('path');
@@ -12,7 +12,7 @@ const app = express();
 
 app.use(helmet());
 
-const allowedOrigins = (process.env.CORS_ORIGINS || 'http://localhost:5173').split(',').map(s => s.trim()).filter(Boolean);
+const allowedOrigins = (process.env.CORS_ORIGINS || 'http://localhost:5100').split(',').map(s => s.trim()).filter(Boolean);
 app.use(cors({
   origin: (origin, cb) => {
     if (!origin || allowedOrigins.includes(origin)) {
