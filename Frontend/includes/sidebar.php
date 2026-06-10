@@ -13,7 +13,7 @@
       </div>
       <div class="ng"><div class="nl">Conta</div>
         <a href="perfil.php" class="ni <?= $currentPage==='perfil'?'act':'' ?>"><span class="ic">👤</span>Meu Perfil</a>
-        <a href="#" class="ni" onclick="openAcessibilidade();return false"><span class="ic">⚙️</span>Configurações</a>
+        <a href="configuracoes.php" class="ni <?= $currentPage==='configuracoes'?'act':'' ?>"><span class="ic">⚙️</span>Configurações</a>
       </div>
     </nav>
     <div class="sidebar-user">
@@ -33,7 +33,7 @@
       <div></div>
       <div class="topbar-r">
         <a href="notificacoes.php" class="tn">🔔</a>
-        <button class="tn" onclick="openAcessibilidade()" style="background:none;border:none;cursor:pointer;font-size:20px" title="Acessibilidade">⚙️</button>
+        <a href="configuracoes.php" class="tn" title="Configurações">⚙️</a>
         <div class="tav"><?= $initial ?></div>
       </div>
     </header>
