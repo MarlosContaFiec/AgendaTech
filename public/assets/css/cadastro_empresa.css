@@ -1,0 +1,141 @@
+/* ===== RESET E BASE ===== */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    min-height: 100vh;
+    font-family: 'Segoe UI', Roboto, sans-serif;
+    background: linear-gradient(135deg, #0f172a, #1e293b);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+/* ===== BOX (Aumentada para 460px) ===== */
+.box-cadastro {
+    width: 100%;
+    max-width: 460px; 
+    padding: 35px 40px;
+    border-radius: 24px;
+    background: rgba(21, 25, 41, 0.97);
+    backdrop-filter: blur(15px);
+    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.6);
+    color: #e5e7eb;
+}
+
+/* ===== LOGO ===== */
+.logo {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 15px;
+    margin-bottom: 30px;
+}
+
+.logo img { max-width: 50px; }
+.title { color: #6366f1; font-size: 24px; font-weight: 600; }
+
+/* ===== FORMULÁRIO ===== */
+#form-cadastro {
+    display: flex;
+    flex-direction: column;
+    gap: 18px; /* Espaçamento entre os blocos aumentado */
+}
+
+/* Garante que Label e Input fiquem em linhas separadas */
+.input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+/* GRID CNPJ / EMAIL (Corrigido) */
+.grid-inputs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+
+label {
+    font-size: 13px;
+    color: #94a3b8;
+    font-weight: 500;
+}
+
+input {
+    width: 100%;
+    padding: 12px 15px;
+    border-radius: 10px;
+    border: 1px solid #2d3748;
+    background: #1e293b;
+    color: #fff;
+    font-size: 14px;
+    outline: none;
+    transition: 0.2s;
+}
+
+input:focus { border-color: #6366f1; box-shadow: 0 0 0 2px rgba(99,102,241,0.2); }
+
+/* ===== SENHA E OLHO ===== */
+.input-senha {
+    position: relative;
+    width: 100%;
+}
+
+.input-senha input { padding-right: 45px; }
+
+.input-senha span {
+    position: absolute;
+    right: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    cursor: pointer;
+    display: flex;
+    opacity: 0.5;
+    transition: 0.3s;
+}
+
+.input-senha span:hover { opacity: 1; }
+.input-senha span img { width: 20px; filter: invert(1); }
+
+/* ===== VERIFICADOR ===== */
+.verificador {
+    display: flex;         /* Mudamos para flex */
+    flex-direction: column; /* Força o alinhamento vertical */
+    gap: 6px;              /* Espaçamento entre as linhas */
+    background: rgba(15, 23, 42, 0.6);
+    padding: 15px;
+    border-radius: 12px;
+    border: 1px solid #334155;
+    margin-top: 5px;
+}
+
+.verificador p {
+    font-size: 12px;
+    color: #64748b;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0; /* Remove margens extras que podem desalinhá-los */
+}
+
+/* ===== BOTÃO ===== */
+#btn-cadastro {
+    width: 100%;
+    padding: 16px;
+    margin-top: 10px;
+    border-radius: 12px;
+    border: none;
+    background: linear-gradient(90deg, #6366f1, #4f46e5);
+    color: white;
+    font-weight: 600;
+    font-size: 16px;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+#btn-cadastro:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(99, 102, 241, 0.4); }

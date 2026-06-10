@@ -1,0 +1,319 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Poppins', sans-serif;  
+}
+
+body {
+    background-color: #151929;; /* Cor de fundo do contéudo da pagina (Abaixo do nav bar e encima do Footer) */
+
+}
+
+/* --- Topo / Nav --- */
+header {
+    width: 100%; /* Tamanho horizontal do nav bar */
+    padding: 20px 8%; /* Expessura do nav bar */
+    display: flex;  /* "Opções" do nav bar (Home, Sobre, Recursos, Contato e Cadastra-se) */
+    justify-content: space-between; /* Deixa o hamburger do lado direito do nav bar */
+    background: #010101; /* Cor do nav bar */
+    position: fixed; /* Msm decendo a página ele ficará fixado lá em cima  */
+    top: 0; /* Distância do incio da página */
+    border-bottom: 1px solid #241f1f; /* Cor da linha final do nan bar */
+}
+
+.logo {
+    display: flex;
+    align-items: center;
+    gap: 12px; /* Distância da logo ESCRITA até a IMAGEM da logo */
+}
+
+.logo-circle {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+}
+
+.logo-img {
+    width: 100%;
+    height: auto;
+    display: block;
+}
+
+.logo h2 {
+    color: #475FE9;
+    font-weight: 600;
+}
+
+nav {
+    display: flex;
+    align-items: center;
+    gap: 30px;
+}
+
+nav a {
+    text-decoration: none;
+    color: #AEBACB;
+    font-weight: 500;
+    transition: 0.3s;
+}
+
+nav a:hover {
+    color: #4B60F1;
+}
+
+.btn-login {
+    padding: 8px 20px;
+    background: linear-gradient(135deg, #A40BB9, #4B60F1);
+    color: white;
+    border-radius: 25px;
+    text-decoration: none;
+    transition: 0.3s;
+}
+
+.btn-login:hover {
+    opacity: 0.85;
+}
+
+/* --- Banner Principal --- */
+.hero {
+    margin-top: 120px;
+    padding: 100px 8%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 50px;
+}
+
+.hero-text {
+    max-width: 550px;
+}
+
+.hero-text h1 {
+    font-size: 46px;
+    color: white;
+    margin-bottom: 20px;
+}
+
+.hero-text p {
+    margin-bottom: 30px;
+    color: #AEBACB;
+    line-height: 1.6;
+}
+
+.btn-primary {
+    padding: 14px 30px;
+    background: #D61E6C;
+    color: white;
+    border-radius: 30px;
+    text-decoration: none;
+    font-weight: 600;
+    transition: 0.3s;
+}
+
+.btn-primary:hover {
+    background: #AB00A1;
+}
+
+.hero-image {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+}
+
+.image-placeholder {
+    width: 420px;
+    height: 300px;
+    background: linear-gradient(135deg, #2B2E5C, #354066);
+    border-radius: 20px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: #AEBACB;
+    font-weight: 500;
+    border: 1px solid #4B5376;
+}
+
+.image-placeholder img {
+    width: 500px;
+    height: 500px;
+}
+
+/* --- Seções de Conteúdo --- */
+section {
+    padding: 100px 8%;
+    text-align: center;
+}
+
+section h2 {
+    font-size: 32px;
+    color: white;
+    margin-bottom: 20px;
+}
+
+.sobre p, .contato p {
+    max-width: 700px;
+    margin: 20px auto;
+    color: #AEBACB;
+    line-height: 1.6;
+}
+
+/* Cards */
+.cards {
+    display: flex;
+    justify-content: center;
+    gap: 30px;
+    margin-top: 50px;
+    flex-wrap: wrap;
+}
+
+.card {
+    background: #2B2E5C;
+    padding: 30px;
+    border-radius: 20px;
+    width: 280px;
+    transition: 0.3s;
+    border: 1px solid #354066;
+}
+
+.card:hover {
+    transform: translateY(-8px);
+    border: 1px solid #4B60F1;
+}
+
+.card h3 {
+    color: #4B60F1;
+    margin-bottom: 15px;
+}
+
+.card p {
+    color: #AEBACB;
+}
+
+footer {
+    background: #010101;
+    color: #5D6783;
+    text-align: center;
+    padding: 25px;
+    border-top: 1px solid #2B2E5C;
+}
+
+/* Menu Mobile */
+.hamburguer {
+    display: none;
+    flex-direction: column;
+    gap: 5px;
+    cursor: pointer;
+}
+
+.hamburguer span {
+    width: 25px;
+    height: 3px;
+    background: #AEBACB;
+    border-radius: 5px;
+    transition: 0.3s;
+}
+
+/* --- Media Queries --- */
+@media (max-width: 1024px) {
+    .hero {
+        flex-direction: column;
+        text-align: center;
+    }
+    .hero-text {
+        max-width: 100%;
+    }
+    .hero-image {
+        margin-top: 40px;
+    }
+    .image-placeholder {
+        width: 100%;
+        max-width: 400px;
+        height: 250px;
+    }
+}
+
+@media (max-width: 768px) {
+    header {
+        padding: 15px 5%;
+    }
+    
+    .hamburguer {
+        display: flex;
+    }
+
+    nav {
+        position: absolute;
+        top: 80px;
+        right: 0;
+        background: #010101;
+        flex-direction: column;
+        width: 200px;
+        padding: 20px;
+        gap: 20px;
+        border-left: 1px solid #2B2E5C;
+        border-radius: 10px;
+        transform: translateX(100%);
+        transition: 0.3s ease-in-out;
+    }
+
+    nav.active {
+        transform: translateX(0);
+    }
+
+    nav a {
+        font-size: 14px;
+    }
+
+    .hero {
+        padding: 80px 5%;
+    }
+    .hero-text h1 {
+        font-size: 32px;
+    }
+    .hero-text p {
+        font-size: 14px;
+    }
+
+    .btn-primary {
+        padding: 12px 25px;
+        font-size: 14px;
+    }
+
+    section {
+        padding: 80px 5%;
+    }
+
+    .cards {
+        flex-direction: column;
+        align-items: center;
+    }
+    .card {
+        width: 90%;
+    }
+}
+
+@media (max-width: 480px) {
+    .logo h2 {
+        font-size: 18px;
+    }
+    nav {
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+    .hero-text h1 {
+        font-size: 26px;
+    }
+    .hero-text p {
+        font-size: 13px;
+    }
+    .image-placeholder {
+        height: 200px;
+    }
+    footer {
+        font-size: 12px;
+    }
+}
