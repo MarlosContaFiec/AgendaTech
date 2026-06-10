@@ -1,27 +1,29 @@
-```php
 <?php
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
+require_once __DIR__ . '/api.php';
+
 if (!isset($_SESSION['token'])) {
 
-    header('Location: /login.php');
+    header('Location: ../login.php');
     exit;
 }
 
-require_once __DIR__ . '/api.php';
-
-$usuarioLogado = apiRequest('/auth/me');
+$response = apiRequest('/auth/me');
 
 if (
-    !$usuarioLogado ||
-    isset($usuarioLogado['error'])
+    !$response ||
+    $response['status'] >= 400
 ) {
 
     session_destroy();
 
-    header('Location: /login.php');
+    header('Location: ../login.php');
     exit;
 }
+
+$usuarioLogado =
+    $response['data'];
