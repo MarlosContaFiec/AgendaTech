@@ -2,6 +2,8 @@
 const db = require('../../config/database');
 const AppError = require('../../utils/AppError');
 const tpl = require('../../utils/templateEngine');
+const { sendAutoMessage } = require('../../utils/messageHelpers');
+const { ensureAffected } = require('../../utils/queryHelpers');
 
 async function entrar(clienteId, data) {
   const { servico_id, empresa_id, data_agendamento, hora_inicio } = data;
@@ -31,7 +33,7 @@ async function sair(clienteId, id) {
     `UPDATE fila_espera SET status = 'cancelado' WHERE id = ? AND cliente_id = ? AND status = 'aguardando'`,
     [id, clienteId]
   );
-  if (r.affectedRows === 0) throw new AppError(404, 'Registro na fila não encontrado');
+  ensureAffected(r, 'Registro na fila');
 }
 
 async function listCliente(clienteId) {
@@ -111,11 +113,12 @@ async function notificarProximo(empresaId, servicoId, dataAgendamento, horaInici
     msg = `${proximo.cliente_nome}, uma vaga abriu para ${proximo.servico_nome} em ${dataAgendamento} às ${horaInicio}. Acesse o app para garantir!`;
   }
 
-  await db.execute(
-    `INSERT INTO mensagem (empresa_id, cliente_id, tipo, mensagem, automatica, enviado_por)
-     VALUES (?, ?, 'outro', ?, TRUE, 'empresa')`,
-    [empresaId, proximo.cliente_id, msg]
-  );
+  await sendAutoMessage({
+    empresaId,
+    clienteId: proximo.cliente_id,
+    tipo: 'outro',
+    mensagem: msg,
+  });
 
   return proximo;
 }

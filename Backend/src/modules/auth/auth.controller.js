@@ -1,59 +1,38 @@
 'use strict';
 const svc  = require('./auth.service');
 const res_ = require('../../utils/response');
+const wrap = require('../../utils/wrapAsync');
 
-async function registerCliente(req, res, next) {
-  try {
-    const result = await svc.registerCliente(req.body);
-    res_.created(res, result, 'Cliente cadastrado com sucesso');
-  } catch (err) { next(err); }
-}
+const registerCliente = wrap(async (req, res) => {
+  res_.created(res, await svc.registerCliente(req.body), 'Cliente cadastrado com sucesso');
+});
 
-async function registerEmpresa(req, res, next) {
-  try {
-    const result = await svc.registerEmpresa(req.body);
-    res_.created(res, result, 'Empresa cadastrada com sucesso');
-  } catch (err) { next(err); }
-}
+const registerEmpresa = wrap(async (req, res) => {
+  res_.created(res, await svc.registerEmpresa(req.body), 'Empresa cadastrada com sucesso');
+});
 
-async function login(req, res, next) {
-  try {
-    const result = await svc.login(req.body.documento, req.body.senha);
-    res_.ok(res, result, 'Login realizado com sucesso');
-  } catch (err) {
-    next(err);
-  }
-}
+const login = wrap(async (req, res) => {
+  res_.ok(res, await svc.login(req.body.documento, req.body.senha), 'Login realizado com sucesso');
+});
 
+const refresh = wrap(async (req, res) => {
+  const { refresh_token } = req.body;
+  if (!refresh_token) return res_.badRequest(res, 'refresh_token obrigatório');
+  res_.ok(res, await svc.refresh(refresh_token), 'Tokens renovados');
+});
 
-async function refresh(req, res, next) {
-  try {
-    const { refresh_token } = req.body;
-    if (!refresh_token) return res_.badRequest(res, 'refresh_token obrigatório');
-    const result = await svc.refresh(refresh_token);
-    res_.ok(res, result, 'Tokens renovados');
-  } catch (err) { next(err); }
-}
+const me = wrap(async (req, res) => {
+  res_.ok(res, await svc.me(req.user.id, req.user.tipo));
+});
 
-async function me(req, res, next) {
-  try {
-    const data = await svc.me(req.user.id, req.user.tipo);
-    res_.ok(res, data);
-  } catch (err) { next(err); }
-}
-async function verificarEmail(req, res, next) {
-  try {
-    const result = await svc.verificarEmail(req.params.token);
-    res_.ok(res, result, result.message);
-  } catch (e) { next(e); }
-}
+const verificarEmail = wrap(async (req, res) => {
+  const result = await svc.verificarEmail(req.params.token);
+  res_.ok(res, result, result.message);
+});
 
-async function reenviarVerificacao(req, res, next) {
-  try {
-    const result = await svc.reenviarVerificacao(req.body.email);
-    res_.ok(res, result, result.message);
-  } catch (e) { next(e); }
-}
-
+const reenviarVerificacao = wrap(async (req, res) => {
+  const result = await svc.reenviarVerificacao(req.body.email);
+  res_.ok(res, result, result.message);
+});
 
 module.exports = { registerCliente, registerEmpresa, login, refresh, me, verificarEmail, reenviarVerificacao };

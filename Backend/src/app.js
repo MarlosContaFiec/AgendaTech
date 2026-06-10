@@ -12,10 +12,10 @@ const app = express();
 
 app.use(helmet());
 
-const allowedOrigins = (process.env.CORS_ORIGINS || '*').split(',');
+const allowedOrigins = (process.env.CORS_ORIGINS || 'http://localhost:5173').split(',').map(s => s.trim()).filter(Boolean);
 app.use(cors({
   origin: (origin, cb) => {
-    if (!origin || allowedOrigins.includes('*') || allowedOrigins.includes(origin)) {
+    if (!origin || allowedOrigins.includes(origin)) {
       return cb(null, true);
     }
     cb(new Error('CORS não permitido'));
@@ -42,15 +42,17 @@ app.get('/health', (_req, res) => {
   res.status(200).json({ ok: true });
 });
 
-app.get('/health/db', async (_req, res) => {
-  try {
-    const db = require('./config/database');
-    await db.queryOne('SELECT 1');
-    res.json({ db: 'ok' });
-  } catch (err) {
-    res.status(503).json({ db: 'error' });
-  }
-});
+if (env.server.env !== 'production') {
+  app.get('/health/db', async (_req, res) => {
+    try {
+      const db = require('./config/database');
+      await db.queryOne('SELECT 1');
+      res.json({ db: 'ok' });
+    } catch (err) {
+      res.status(503).json({ db: 'error' });
+    }
+  });
+}
 
 app.use('/api/auth',                  require('./modules/auth/auth.routes'));
 app.use('/api/empresa',               require('./modules/empresa/empresa.routes'));

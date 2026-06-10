@@ -1,6 +1,7 @@
 'use strict';
 const db = require('../../config/database');
 const AppError = require('../../utils/AppError');
+const { buildUpdateSets, ensureAffected } = require('../../utils/queryHelpers');
 
 async function list(empresaId) {
   return db.query(
@@ -33,19 +34,18 @@ async function create(empresaId, data) {
 }
 
 async function update(empresaId, id, data) {
-  const sets = [], vals = [];
-  for (const k of ['nome', 'label', 'cor', 'aceita_agendamento', 'info']) {
-    if (data[k] !== undefined) {
-      sets.push(`${k} = ?`);
-      vals.push(k === 'aceita_agendamento' ? (data[k] ? 1 : 0) : data[k]);
-    }
-  }
+  const { sets, vals } = buildUpdateSets(
+    data,
+    ['nome', 'label', 'cor', 'aceita_agendamento', 'info'],
+    { aceita_agendamento: (v) => (v ? 1 : 0) }
+  );
   if (!sets.length) throw new AppError(400, 'Nenhum campo para atualizar');
+
   const r = await db.execute(
     `UPDATE tags SET ${sets.join(', ')} WHERE id = ? AND empresa_id = ?`,
     [...vals, id, empresaId]
   );
-  if (r.affectedRows === 0) throw new AppError(404, 'Tag não encontrada');
+  ensureAffected(r, 'Tag');
   return db.queryOne(`SELECT * FROM tags WHERE id = ?`, [id]);
 }
 
@@ -55,7 +55,7 @@ async function remove(empresaId, id) {
   );
   if (used?.qtd > 0) throw new AppError(409, 'Tag está em uso por regras ativas');
   const r = await db.execute(`DELETE FROM tags WHERE id = ? AND empresa_id = ?`, [id, empresaId]);
-  if (r.affectedRows === 0) throw new AppError(404, 'Tag não encontrada');
+  ensureAffected(r, 'Tag');
 }
 
 module.exports = { list, create, update, remove };

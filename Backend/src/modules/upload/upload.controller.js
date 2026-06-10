@@ -1,19 +1,16 @@
 'use strict';
 const res_ = require('../../utils/response');
 const { getFileInfo } = require('./upload.service');
+const wrap = require('../../utils/wrapAsync');
 
-async function single(req, res, next) {
-  try {
-    if (!req.file) return res_.badRequest(res, 'Nenhum arquivo enviado');
-    res_.ok(res, getFileInfo(req.file), 'Arquivo enviado');
-  } catch (e) { next(e); }
-}
+const single = wrap(async (req, res) => {
+  if (!req.file) return res_.badRequest(res, 'Nenhum arquivo enviado');
+  res_.ok(res, getFileInfo(req.file), 'Arquivo enviado');
+});
 
-async function multiple(req, res, next) {
-  try {
-    if (!req.files?.length) return res_.badRequest(res, 'Nenhum arquivo enviado');
-    res_.ok(res, req.files.map(getFileInfo), 'Arquivos enviados');
-  } catch (e) { next(e); }
-}
+const multiple = wrap(async (req, res) => {
+  if (!req.files?.length) return res_.badRequest(res, 'Nenhum arquivo enviado');
+  res_.ok(res, req.files.map(getFileInfo), 'Arquivos enviados');
+});
 
 module.exports = { single, multiple };

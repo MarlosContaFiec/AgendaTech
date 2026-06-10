@@ -1,6 +1,8 @@
 'use strict';
 const db = require('../../config/database');
 const AppError = require('../../utils/AppError');
+const { parsePagination } = require('../../utils/pagination');
+const { ensureAffected } = require('../../utils/queryHelpers');
 
 async function list(clienteId) {
   return db.query(
@@ -22,15 +24,12 @@ async function create(clienteId, data) {
 
 async function listEmpresaDocs(empresaId, filters = {}) {
   const { status, cliente_id } = filters;
-  const pagina = parseInt(filters.pagina) || 1;
-  const limite = parseInt(filters.limite) || 20;
+  const { limite, offset } = parsePagination(filters);
   const where = ['a.empresa_id = ?'];
   const params = [empresaId];
 
   if (status) { where.push('d.status = ?'); params.push(status); }
   if (cliente_id) { where.push('d.cliente_id = ?'); params.push(cliente_id); }
-
-  const offset = (pagina - 1) * limite;
 
   return db.queryRaw(
     `SELECT d.*, c.nome AS cliente_nome
@@ -40,8 +39,8 @@ async function listEmpresaDocs(empresaId, filters = {}) {
      WHERE ${where.join(' AND ')}
      GROUP BY d.id
      ORDER BY d.criado_em DESC
-     LIMIT ${limite} OFFSET ${offset}`,
-    params
+     LIMIT ? OFFSET ?`,
+    [...params, limite, offset]
   );
 }
 
@@ -71,7 +70,7 @@ async function remove(clienteId, id) {
     `DELETE FROM documento_cliente WHERE id = ? AND cliente_id = ?`,
     [id, clienteId]
   );
-  if (r.affectedRows === 0) throw new AppError(404, 'Documento não encontrado');
+  ensureAffected(r, 'Documento');
 }
 
 module.exports = { list, create, listEmpresaDocs, revisar, remove };

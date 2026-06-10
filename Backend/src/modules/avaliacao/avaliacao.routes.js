@@ -3,6 +3,8 @@ const db = require('../../config/database');
 const AppError = require('../../utils/AppError');
 const tpl = require('../../utils/templateEngine');
 const res_ = require('../../utils/response');
+const wrap = require('../../utils/wrapAsync');
+const { parsePagination } = require('../../utils/pagination');
 const router = require('express').Router();
 const { authenticate, requireEmpresa, requireCliente } = require('../../middlewares/auth');
 const { validate, schemas } = require('../../middlewares/validate');
@@ -38,15 +40,12 @@ async function create(clienteId, agendamentoId, data) {
 
 async function listEmpresa(empresaId, filters = {}) {
   const { estrelas_min, estrelas_max } = filters;
-  const pagina = parseInt(filters.pagina) || 1;
-  const limite = parseInt(filters.limite) || 20;
+  const { limite, offset } = parsePagination(filters);
   const where = ['a.empresa_id = ?'];
   const params = [empresaId];
 
   if (estrelas_min) { where.push('av.estrelas >= ?'); params.push(estrelas_min); }
   if (estrelas_max) { where.push('av.estrelas <= ?'); params.push(estrelas_max); }
-
-  const offset = (pagina - 1) * limite;
 
   return db.queryRaw(
     `SELECT av.*, c.nome AS cliente_nome, s.nome AS servico_nome,
@@ -57,8 +56,8 @@ async function listEmpresa(empresaId, filters = {}) {
      JOIN servico s ON s.id = a.servico_id
      WHERE ${where.join(' AND ')}
      ORDER BY av.id DESC
-     LIMIT ${limite} OFFSET ${offset}`,
-    params
+     LIMIT ? OFFSET ?`,
+    [...params, limite, offset]
   );
 }
 
@@ -112,28 +111,13 @@ async function stats(empresaId) {
   );
 }
 
-const ctrl = {
-  create: async (req, res, next) => {
-    try { res_.created(res, await create(req.user.id, req.params.agendamento_id, req.body)); }
-    catch (e) { next(e); }
-  },
-  listEmpresa: async (req, res, next) => {
-    try { res_.ok(res, await listEmpresa(req.user.id, req.query)); }
-    catch (e) { next(e); }
-  },
-  responder: async (req, res, next) => {
-    try { res_.ok(res, await responder(req.user.id, req.params.id, req.body.resposta)); }
-    catch (e) { next(e); }
-  },
-  stats: async (req, res, next) => {
-    try { res_.ok(res, await stats(req.user.id)); }
-    catch (e) { next(e); }
-  },
-};
-
-router.post('/agendamento/:agendamento_id',requireCliente, validate(schemas.createAvaliacao), ctrl.create);
-router.get('/', requireEmpresa, ctrl.listEmpresa);
-router.get('/stats', requireEmpresa, ctrl.stats);
-router.put('/:id', requireEmpresa, validate(schemas.responderAvaliacao), ctrl.responder);
+router.post('/agendamento/:agendamento_id', requireCliente, validate(schemas.createAvaliacao),
+  wrap(async (req, res) => { res_.created(res, await create(req.user.id, req.params.agendamento_id, req.body)); }));
+router.get('/', requireEmpresa,
+  wrap(async (req, res) => { res_.ok(res, await listEmpresa(req.user.id, req.query)); }));
+router.get('/stats', requireEmpresa,
+  wrap(async (req, res) => { res_.ok(res, await stats(req.user.id)); }));
+router.put('/:id', requireEmpresa, validate(schemas.responderAvaliacao),
+  wrap(async (req, res) => { res_.ok(res, await responder(req.user.id, req.params.id, req.body.resposta)); }));
 
 module.exports = router;

@@ -3,6 +3,8 @@ const db = require('../../config/database');
 const AppError = require('../../utils/AppError');
 const tpl = require('../../utils/templateEngine');
 const res_ = require('../../utils/response');
+const wrap = require('../../utils/wrapAsync');
+const { buildUpdateSets, ensureAffected } = require('../../utils/queryHelpers');
 const router = require('express').Router();
 const { requireEmpresa } = require('../../middlewares/auth');
 const { validate, schemas } = require('../../middlewares/validate');
@@ -39,16 +41,13 @@ async function update(empresaId, id, data) {
   const allowed = ['nome', 'descricao', 'antecedencia_horas', 'mensagem_template',
     'tipo_notificacao', 'limite_horas', 'taxa_percentual', 'taxa_fixa',
     'estrelas_min', 'estrelas_max', 'ativo'];
-  const sets = [], vals = [];
-  for (const k of allowed) {
-    if (data[k] !== undefined) { sets.push(`${k} = ?`); vals.push(data[k]); }
-  }
+  const { sets, vals } = buildUpdateSets(data, allowed);
   if (!sets.length) throw new AppError(400, 'Nenhum campo para atualizar');
   const r = await db.execute(
     `UPDATE regra_empresa SET ${sets.join(', ')} WHERE id = ? AND empresa_id = ?`,
     [...vals, id, empresaId]
   );
-  if (r.affectedRows === 0) throw new AppError(404, 'Regra não encontrada');
+  ensureAffected(r, 'Regra');
   return db.queryOne(`SELECT * FROM regra_empresa WHERE id = ?`, [id]);
 }
 
@@ -56,7 +55,7 @@ async function remove(empresaId, id) {
   const r = await db.execute(
     `DELETE FROM regra_empresa WHERE id = ? AND empresa_id = ?`, [id, empresaId]
   );
-  if (r.affectedRows === 0) throw new AppError(404, 'Regra não encontrada');
+  ensureAffected(r, 'Regra');
 }
 
 async function previewTemplate(empresaId, id) {
@@ -79,20 +78,11 @@ async function previewTemplate(empresaId, id) {
   return { preview, variaveis: tpl.availableVars() };
 }
 
-const ctrl = {
-  list: async (req, res, next) => { try { res_.ok(res, await list(req.user.id, req.query.tipo)); } catch (e) { next(e); } },
-  create: async (req, res, next) => { try { res_.created(res, await create(req.user.id, req.body)); } catch (e) { next(e); } },
-  update: async (req, res, next) => { try { res_.ok(res, await update(req.user.id, req.params.id, req.body)); } catch (e) { next(e); } },
-  remove: async (req, res, next) => { try { await remove(req.user.id, req.params.id); res_.ok(res, null, 'Removido'); } catch (e) { next(e); } },
-  preview: async (req, res, next) => { try { res_.ok(res, await previewTemplate(req.user.id, req.params.id)); } catch (e) { next(e); } },
-  vars: (_req, res) => { res_.ok(res, tpl.availableVars()); },
-};
-
-router.get('/template/vars', requireEmpresa, ctrl.vars);
-router.get('/', requireEmpresa, ctrl.list);
-router.post('/', requireEmpresa, validate(schemas.createRegraNegocio), ctrl.create);
-router.put('/:id', requireEmpresa, validate(schemas.updateRegraNegocio), ctrl.update);
-router.delete('/:id', requireEmpresa, ctrl.remove);
-router.get('/:id/preview', requireEmpresa, ctrl.preview);
+router.get('/template/vars', requireEmpresa, wrap((_req, res) => { res_.ok(res, tpl.availableVars()); }));
+router.get('/', requireEmpresa, wrap(async (req, res) => { res_.ok(res, await list(req.user.id, req.query.tipo)); }));
+router.post('/', requireEmpresa, validate(schemas.createRegraNegocio), wrap(async (req, res) => { res_.created(res, await create(req.user.id, req.body)); }));
+router.put('/:id', requireEmpresa, validate(schemas.updateRegraNegocio), wrap(async (req, res) => { res_.ok(res, await update(req.user.id, req.params.id, req.body)); }));
+router.delete('/:id', requireEmpresa, wrap(async (req, res) => { await remove(req.user.id, req.params.id); res_.ok(res, null, 'Removido'); }));
+router.get('/:id/preview', requireEmpresa, wrap(async (req, res) => { res_.ok(res, await previewTemplate(req.user.id, req.params.id)); }));
 
 module.exports = router;

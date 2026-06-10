@@ -2,6 +2,8 @@
 const db = require('../../config/database');
 const AppError = require('../../utils/AppError');
 const res_ = require('../../utils/response');
+const wrap = require('../../utils/wrapAsync');
+const { ensureAffected } = require('../../utils/queryHelpers');
 const router = require('express').Router();
 const { authenticate, requireEmpresa, requireCliente } = require('../../middlewares/auth');
 const { validate, schemas } = require('../../middlewares/validate');
@@ -34,8 +36,8 @@ async function listMensagens(empresaId, clienteId, pagina = 1, limite = 50) {
      FROM mensagem m
      WHERE m.empresa_id = ? AND m.cliente_id = ?
      ORDER BY m.data_envio ASC
-     LIMIT ${l} OFFSET ${offset}`,
-    [empresaId, clienteId]
+     LIMIT ? OFFSET ?`,
+    [empresaId, clienteId, l, offset]
   );
 }
 
@@ -105,7 +107,7 @@ async function updateFaq(empresaId, id, data) {
      WHERE id = ? AND empresa_id = ?`,
     [pergunta || null, resposta || null, ordem ?? null, ativo ?? null, id, empresaId]
   );
-  if (r.affectedRows === 0) throw new AppError(404, 'FAQ não encontrado');
+  ensureAffected(r, 'FAQ');
   return db.queryOne(`SELECT * FROM chat_faq WHERE id = ?`, [id]);
 }
 
@@ -113,50 +115,48 @@ async function deleteFaq(empresaId, id) {
   const r = await db.execute(
     `DELETE FROM chat_faq WHERE id = ? AND empresa_id = ?`, [id, empresaId]
   );
-  if (r.affectedRows === 0) throw new AppError(404, 'FAQ não encontrado');
+  ensureAffected(r, 'FAQ');
 }
 
-router.get('/publico/:empresa_id/faq', async (req, res, next) => {
-  try { res_.ok(res, await getChatConfig(req.params.empresa_id)); } catch (e) { next(e); }
-});
+router.get('/publico/:empresa_id/faq', wrap(async (req, res) => {
+  res_.ok(res, await getChatConfig(req.params.empresa_id));
+}));
 
-router.get('/conversas', requireEmpresa, async (req, res, next) => {
-  try { res_.ok(res, await listConversas(req.user.id)); } catch (e) { next(e); }
-});
+router.get('/conversas', requireEmpresa, wrap(async (req, res) => {
+  res_.ok(res, await listConversas(req.user.id));
+}));
 
-router.get('/conversas/:cliente_id', requireEmpresa, async (req, res, next) => {
-  try { res_.ok(res, await listMensagens(req.user.id, req.params.cliente_id, req.query.pagina, req.query.limite)); }
-  catch (e) { next(e); }
-});
+router.get('/conversas/:cliente_id', requireEmpresa, wrap(async (req, res) => {
+  res_.ok(res, await listMensagens(req.user.id, req.params.cliente_id, req.query.pagina, req.query.limite));
+}));
 
-router.post('/conversas/:cliente_id', requireEmpresa, validate(schemas.sendMensagem), async (req, res, next) => {
-  try { res_.created(res, await sendEmpresa(req.user.id, req.params.cliente_id, req.body)); }
-  catch (e) { next(e); }
-});
+router.post('/conversas/:cliente_id', requireEmpresa, validate(schemas.sendMensagem), wrap(async (req, res) => {
+  res_.created(res, await sendEmpresa(req.user.id, req.params.cliente_id, req.body));
+}));
 
-router.get('/chat-config', requireEmpresa, async (req, res, next) => {
-  try { res_.ok(res, await getChatConfig(req.user.id)); } catch (e) { next(e); }
-});
+router.get('/chat-config', requireEmpresa, wrap(async (req, res) => {
+  res_.ok(res, await getChatConfig(req.user.id));
+}));
 
-router.put('/chat-config', requireEmpresa, validate(schemas.chatConfig), async (req, res, next) => {
-  try { res_.ok(res, await upsertChatConfig(req.user.id, req.body)); } catch (e) { next(e); }
-});
+router.put('/chat-config', requireEmpresa, validate(schemas.chatConfig), wrap(async (req, res) => {
+  res_.ok(res, await upsertChatConfig(req.user.id, req.body));
+}));
 
-router.post('/chat-config/faq', requireEmpresa, validate(schemas.chatFaq), async (req, res, next) => {
-  try { res_.created(res, await addFaq(req.user.id, req.body)); } catch (e) { next(e); }
-});
+router.post('/chat-config/faq', requireEmpresa, validate(schemas.chatFaq), wrap(async (req, res) => {
+  res_.created(res, await addFaq(req.user.id, req.body));
+}));
 
-router.put('/chat-config/faq/:id', requireEmpresa, async (req, res, next) => {
-  try { res_.ok(res, await updateFaq(req.user.id, req.params.id, req.body), 'FAQ atualizado'); } catch (e) { next(e); }
-});
+router.put('/chat-config/faq/:id', requireEmpresa, wrap(async (req, res) => {
+  res_.ok(res, await updateFaq(req.user.id, req.params.id, req.body), 'FAQ atualizado');
+}));
 
-router.delete('/chat-config/faq/:id', requireEmpresa, async (req, res, next) => {
-  try { await deleteFaq(req.user.id, req.params.id); res_.ok(res, null, 'FAQ removido'); } catch (e) { next(e); }
-});
+router.delete('/chat-config/faq/:id', requireEmpresa, wrap(async (req, res) => {
+  await deleteFaq(req.user.id, req.params.id);
+  res_.ok(res, null, 'FAQ removido');
+}));
 
-router.post('/empresa/:empresa_id', requireCliente, validate(schemas.sendMensagem), async (req, res, next) => {
-  try { res_.created(res, await sendCliente(req.user.id, req.params.empresa_id, req.body)); }
-  catch (e) { next(e); }
-});
+router.post('/empresa/:empresa_id', requireCliente, validate(schemas.sendMensagem), wrap(async (req, res) => {
+  res_.created(res, await sendCliente(req.user.id, req.params.empresa_id, req.body));
+}));
 
 module.exports = router;

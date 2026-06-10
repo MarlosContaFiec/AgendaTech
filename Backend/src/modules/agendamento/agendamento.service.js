@@ -3,6 +3,9 @@ const db = require('../../config/database');
 const AppError = require('../../utils/AppError');
 const cal = require('../../utils/calendarEngine');
 const tpl = require('../../utils/templateEngine');
+const { toMinutes, fromMinutes } = require('../../utils/timeHelpers');
+const { sendAutoMessage } = require('../../utils/messageHelpers');
+const { parsePagination } = require('../../utils/pagination');
 
 async function enviarNotificacaoAutomatica(empresaId, clienteId, agendamentoId, tipo) {
   try {
@@ -27,11 +30,7 @@ async function enviarNotificacaoAutomatica(empresaId, clienteId, agendamentoId, 
 
     const msg = tpl.render(regra.mensagem_template, tplData);
 
-    await db.execute(
-      `INSERT INTO mensagem (empresa_id, cliente_id, tipo, mensagem, automatica, enviado_por)
-       VALUES (?, ?, ?, ?, TRUE, 'empresa')`,
-      [empresaId, clienteId, tipo, msg]
-    );
+    await sendAutoMessage({ empresaId, clienteId, tipo, mensagem: msg });
 
     await db.execute(
       `INSERT INTO notificacao_log (empresa_id, cliente_id, agendamento_id, regra_id, tipo, mensagem)
@@ -54,7 +53,7 @@ async function enviarNotificacaoAutomatica(empresaId, clienteId, agendamentoId, 
     console.error('[NOTIF] Falha ao enviar notificação automática:', err.message);
   }
 }
-/** Gera slots de horário para um serviço em uma data */
+
 async function getSlots(empresaId, servicoId, dateRaw) {
   const date = String(dateRaw).slice(0, 10);
 
@@ -144,13 +143,23 @@ async function getSlots(empresaId, servicoId, dateRaw) {
   return { disponivel: true, tags, slots };
 }
 
-function toMinutes(timeStr) {
-  const [h, m] = timeStr.split(':').map(Number);
-  return h * 60 + m;
-}
-
-function fromMinutes(mins) {
-  return `${String(Math.floor(mins / 60)).padStart(2, '0')}:${String(mins % 60).padStart(2, '0')}`;
+/**
+ * Helper: Retorna agendamento com todas as informações relacionadas
+ * CRÍTICO: Garante que TODOS os endpoints retornam dados consistentes
+ */
+async function getAgendamentoCompleto(agendamentoId) {
+  return db.queryOne(
+    `SELECT a.*, 
+            c.nome AS cliente_nome, c.score AS cliente_score,
+            s.nome AS servico_nome, s.duracao_minutos,
+            e.nome_fantasia AS empresa_nome, e.id AS empresa_id
+     FROM agendamento a
+     JOIN cliente c ON c.id = a.cliente_id
+     JOIN servico s ON s.id = a.servico_id
+     JOIN empresa e ON e.id = a.empresa_id
+     WHERE a.id = ?`,
+    [agendamentoId]
+  );
 }
 
 async function create(clienteId, data) {
@@ -190,26 +199,18 @@ async function create(clienteId, data) {
     await enviarNotificacaoAutomatica(empresa_id, clienteId, r.insertId, 'confirmacao');
   }
 
-  return db.queryOne(
-    `SELECT a.*, s.nome AS servico_nome, e.nome_fantasia FROM agendamento a
-     JOIN servico s ON s.id=a.servico_id
-     JOIN empresa e ON e.id=a.empresa_id
-     WHERE a.id=?`, [r.insertId]
-  );
+  return getAgendamentoCompleto(r.insertId);
 }
 
 async function listEmpresa(empresaId, filters = {}) {
   const { status, data_inicio, data_fim } = filters;
-  const pagina = parseInt(filters.pagina) || 1;
-  const limite = parseInt(filters.limite) || 20;
+  const { limite, offset } = parsePagination(filters);
   const where = ['a.empresa_id = ?'];
   const params = [empresaId];
 
   if (status) { where.push('a.status_agendamento = ?'); params.push(status); }
   if (data_inicio) { where.push('a.data_agendamento >= ?'); params.push(data_inicio); }
   if (data_fim) { where.push('a.data_agendamento <= ?'); params.push(data_fim); }
-
-  const offset = (pagina - 1) * limite;
 
   return db.queryRaw(
     `SELECT a.*, c.nome AS cliente_nome, c.score AS cliente_score,
@@ -219,21 +220,18 @@ async function listEmpresa(empresaId, filters = {}) {
      JOIN servico s ON s.id = a.servico_id
      WHERE ${where.join(' AND ')}
      ORDER BY a.data_agendamento DESC, a.hora_inicio DESC
-     LIMIT ${limite} OFFSET ${offset}`,
-    params
+     LIMIT ? OFFSET ?`,
+    [...params, limite, offset]
   );
 }
 
 async function listCliente(clienteId, filters = {}) {
   const { status } = filters;
-  const pagina = parseInt(filters.pagina) || 1;
-  const limite = parseInt(filters.limite) || 20;
+  const { limite, offset } = parsePagination(filters);
   const where = ['a.cliente_id = ?'];
   const params = [clienteId];
 
   if (status) { where.push('a.status_agendamento = ?'); params.push(status); }
-
-  const offset = (pagina - 1) * limite;
 
   return db.queryRaw(
     `SELECT a.*, s.nome AS servico_nome, e.nome_fantasia AS empresa_nome,
@@ -243,8 +241,8 @@ async function listCliente(clienteId, filters = {}) {
      JOIN empresa e ON e.id = a.empresa_id
      WHERE ${where.join(' AND ')}
      ORDER BY a.data_agendamento DESC, a.hora_inicio DESC
-     LIMIT ${limite} OFFSET ${offset}`,
-    params
+     LIMIT ? OFFSET ?`,
+    [...params, limite, offset]
   );
 }
 
@@ -272,7 +270,7 @@ async function aceitar(empresaId, id) {
     [id]
   );
   await enviarNotificacaoAutomatica(empresaId, ag.cliente_id, id, 'confirmacao');
-  return db.queryOne(`SELECT * FROM agendamento WHERE id=?`, [id]);
+  return getAgendamentoCompleto(id);
 }
 
 async function recusar(empresaId, id, motivo) {
@@ -288,7 +286,7 @@ async function recusar(empresaId, id, motivo) {
   const filaSvc = require('../fila/fila.service');
   await filaSvc.notificarProximo(empresaId, ag.servico_id, ag.data_agendamento, ag.hora_inicio);
 
-  return db.queryOne(`SELECT * FROM agendamento WHERE id=?`, [id]);
+  return getAgendamentoCompleto(id);
 }
 
 
@@ -300,7 +298,7 @@ async function concluir(empresaId, id) {
   await db.execute(`UPDATE agendamento SET status_agendamento='concluido' WHERE id=?`, [id]);
 
   await aplicarScore(ag.cliente_id, id, 1.0, 'Compareceu ao agendamento');
-  return db.queryOne(`SELECT * FROM agendamento WHERE id=?`, [id]);
+  return getAgendamentoCompleto(id);
 }
 
 async function cancelarCliente(clienteId, id, motivo) {
@@ -343,7 +341,7 @@ async function cancelarCliente(clienteId, id, motivo) {
   const filaSvc = require('../fila/fila.service');
   await filaSvc.notificarProximo(ag.empresa_id, ag.servico_id, ag.data_agendamento, ag.hora_inicio);
 
-  return { agendamento: await db.queryOne(`SELECT * FROM agendamento WHERE id=?`, [id]), taxaInfo };
+  return { agendamento: await getAgendamentoCompleto(id), taxaInfo };
 }
 
 
@@ -405,7 +403,7 @@ async function reagendar(clienteId, id, data) {
     await enviarNotificacaoAutomatica(ag.empresa_id, clienteId, r.insertId, 'confirmacao');
   }
 
-  return db.queryOne(`SELECT * FROM agendamento WHERE id=?`, [r.insertId]);
+  return getAgendamentoCompleto(r.insertId);
 }
 
 async function aplicarScore(clienteId, agendamentoId, variacao, motivo) {
@@ -419,43 +417,6 @@ async function aplicarScore(clienteId, agendamentoId, variacao, motivo) {
      VALUES (?, ?, ?, ?, ?)`,
     [clienteId, agendamentoId, variacao, novoScore, motivo]
   );
-}
-
-async function enviarNotificacaoAutomatica(empresaId, clienteId, agendamentoId, tipo) {
-  try {
-    const regra = await db.queryOne(
-      `SELECT re.*, e.nome_fantasia FROM regra_empresa re JOIN empresa e ON e.id=re.empresa_id
-       WHERE re.empresa_id=? AND re.tipo='notificacao' AND re.tipo_notificacao=? AND re.ativo=1 LIMIT 1`,
-      [empresaId, tipo]
-    );
-    if (!regra?.mensagem_template) return;
-
-    const ag = await db.queryOne(`SELECT * FROM agendamento WHERE id=?`, [agendamentoId]);
-    const cliente = await db.queryOne(`SELECT nome FROM cliente WHERE id=?`, [clienteId]);
-    const servico = await db.queryOne(`SELECT nome FROM servico WHERE id=?`, [ag?.servico_id]);
-
-    const msg = tpl.render(regra.mensagem_template, {
-      nome_cliente: cliente?.nome,
-      nome_empresa: regra.nome_fantasia,
-      data: ag?.data_agendamento,
-      hora: ag?.hora_inicio,
-      servico: servico?.nome,
-    });
-
-    await db.execute(
-      `INSERT INTO mensagem (empresa_id, cliente_id, tipo, mensagem, automatica, enviado_por)
-       VALUES (?, ?, ?, ?, TRUE, 'empresa')`,
-      [empresaId, clienteId, tipo, msg]
-    );
-
-    await db.execute(
-      `INSERT INTO notificacao_log (empresa_id, cliente_id, agendamento_id, regra_id, tipo, mensagem)
-       VALUES (?, ?, ?, ?, ?, ?)`,
-      [empresaId, clienteId, agendamentoId, regra.id, tipo, msg]
-    );
-  } catch (err) {
-    console.error('[NOTIF] Falha ao enviar notificação automática:', err.message);
-  }
 }
 
 module.exports = { getSlots, create, listEmpresa, listCliente, getById, aceitar, recusar, concluir, cancelarCliente, reagendar, aplicarScore };
